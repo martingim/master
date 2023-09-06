@@ -1,5 +1,5 @@
 #include "grid/multigrid.h"
-#include "output_vtu_foreach.h"
+#include "../src/output_vtu_foreach.h"
 
 #if ML
 # include "layered/hydro.h"

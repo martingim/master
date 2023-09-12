@@ -33,8 +33,8 @@ event init (t=0) {
     fractions (phi, f);
 
     foreach() {
-        u.x = f[] * (1e-8);
-        u.y = 0;
+        u.x[] = f[] * (1e-8);
+        u.y[] = 0;
     }
 }
 

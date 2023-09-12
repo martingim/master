@@ -1,0 +1,34 @@
+sudo apt-get install libelf-dev llvm-dev libdrm-dev bison libwayland-egl-backend-dev libxcb-glx0-dev libx11-xcb-dev libxcb-dri2-0-dev libxcb-dri3-dev libxcb-present-dev libxshmfence-dev libxxf86vm-dev
+
+#install meson
+
+meson setup build/
+
+ninja -C build/
+
+ninja -C build/ install
+
+sudo apt get install libosmesa6-dev
+
+cd $BASILISK/gl
+make libglutils.a libfb_osmesa.a
+
+sudo apt-get install openmpi-bin libopenmpi-dev libvtk6.2 libvtk6-dev
+
+#install VTK
+sudo apt install freeglut3 freeglut3-dev mesa-common-dev python3-pip-whl python3-setuptools-whl python3-venv python3.10-venv
+
+#download VTK from https://vtk.org/download/
+sudo tar -zxvf VTK-9.1.0.tar.gz -C /opt
+cd /opt/VTK-9.1.0
+sudo mkdir VTK-build
+cd VTK-build
+ccmake ..
+
+git clone https://github.com/CFDEMproject/LIGGGHTS-PUBLIC.git
+
+cd LIGGGHTS-PUBLIC/src
+make auto 
+
+edit the file MAKE/Makefile.user 
+    AUTOINSTALL_VTK = "ON"

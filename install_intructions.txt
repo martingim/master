@@ -1,27 +1,27 @@
-#go into software and update center. Enable source code
+#########################################
+sudo apt install darcs make gawk
 
-#sudo apt-get install libelf-dev llvm-dev libdrm-dev bison libwayland-egl-backend-dev libxcb-glx0-dev libx11-xcb-dev libxcb-dri2-0-dev libxcb-dri3-dev libxcb-present-dev libxshmfence-dev libxxf86vm-dev glslang-dev glslang-tools pkg-config cmake
+darcs clone http://basilisk.fr/basilisk
 
-sudo apt install meson ninja-build
+cd basilisk/src
+ln -s config.gcc config
+make
+echo "export BASILISK=$PWD" >> ~/.bashrc
+echo 'export PATH=$PATH:$BASILISK' >> ~/.bashrc
 
-sudo apt install bison flex
+sudo apt install gnuplot imagemagick ffmpeg graphviz valgrind gifsicle pstoedit
 
-#MESA install
-#download mesa https://docs.mesa3d.org/download.html
-sudo apt-get build-dep mesa
-meson setup build/
-meson compile -C builddir/
-sudo meson install -C builddir/
+sudo apt install gfortran
+cd $BASILISK/ppr
+make
 
-
-
-###################
-sudo apt get install bison libosmesa6-dev
-sudo apt-get install bison libglu1-mesa-dev libglew-dev libgl1-mesa-dev
+sudo apt-get install bison libosmesa6-dev libglu1-mesa-dev libglew-dev libgl1-mesa-dev
 
 cd $BASILISK/gl
-make libglutils.a libfb_osmesa.a
-make libglutils.a libfb_glx.a
+make libglutils.a libfb_osmesa.a libfb_glx.a
 
-#edit /etc/ld.so.conf.d/libc.conf
+#edit
+sudo nano /etc/ld.so.conf.d/libc.conf
+#add line
 /home/martin/Documents/master/src
+sudo ldconfig

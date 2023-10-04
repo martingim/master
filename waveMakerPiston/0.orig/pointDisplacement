@@ -1,0 +1,71 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       pointVectorField;
+    object      pointDisplacement;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 0 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    bottom1
+    {
+        type            zeroGradient;
+    }
+
+    bottom2
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    leftwall
+    {
+        type            waveMaker;
+        value           uniform (0 0 0);
+
+        motionType      piston;
+        n               (1 0 0);
+        waveHeight      0.0093;
+        initialDepth    0.335;
+        wavePeriod      0.44;
+        rampTime        2.0;
+        wavePhase       0;
+    }
+
+    back
+    {
+        type            empty;
+    }
+
+    front
+    {
+        type            empty;
+    }
+
+    rightwall
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    top
+    {
+        type            zeroGradient;
+    }
+}
+
+
+// ************************************************************************* //

@@ -25,3 +25,5 @@ sudo nano /etc/ld.so.conf.d/libc.conf
 #add line
 /home/martin/Documents/master/src
 sudo ldconfig
+
+pip3 install pandas

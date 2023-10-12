@@ -27,3 +27,7 @@ sudo nano /etc/ld.so.conf.d/libc.conf
 sudo ldconfig
 
 pip3 install pandas
+
+sudo apt install curl
+curl -s https://dl.openfoam.com/add-debian-repo.sh | sudo bash
+sudo apt install openfoam2306-default

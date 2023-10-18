@@ -19,17 +19,6 @@ k = ak/a
 omega = 2*pi*freq
 g = 9.81
 
-<<<<<<< HEAD
-x_Start = 1.
-x_end = 4.
-
-start_idx = np.nanargmin(abs(X[:,0,0]-x_Start))
-end_idx = np.nanargmin(abs(X[:,0,0]-x_end))
-
-print("start end x ", start_idx, end_idx)
-print('shapes ', X.shape, U.shape, alphawater.shape)
-
-=======
 x_min = 2
 x_max = 3 
 idx_min = np.nanargmin(np.abs(X[:,0,0]-x_min))
@@ -41,7 +30,6 @@ Z = Z[idx_min:idx_max,:,:]
 U = U[:,idx_min:idx_max,:,:]
 alphawater = alphawater[idx_min:idx_max,:,:]
 print("shapes ", X.shape, U.shape)
->>>>>>> 66e7997512772ebc340554fa81204399d22deeea
 
 alpha = np.zeros((nz))
 for i in range(nz):

@@ -7,7 +7,7 @@ def stokes_u(k, h, a, theta, z):
     alpha = np.cosh(2 * k * h)
     A11 = 1 / np.sinh(k * h)
     A22 = 3 / (8 * (np.sinh(k * h) ** 4))
-    A33 = ((9 - 4 * (np.sinh(k * h) ** 2)) / (64 * (np.sinh(k * h) ** 7))
+    A33 = (9 - 4 * (np.sinh(k * h) ** 2)) / (64 * (np.sinh(k * h) ** 7))
     A44 = (10 * alpha**3 - 174 * alpha**2 - 291 * alpha + 278) / (48 * (3 * alpha + 2) * (alpha - 1)**5)
     A55 = (-6 * alpha**5 + 272 * alpha**4 - 1552 * alpha**3 + 852 * alpha**2 + 2029 * alpha + 430) / (
             64 * (alpha - 1)**6 * (12 * alpha**2 + 11 * alpha + 2) * np.sinh(k * h))

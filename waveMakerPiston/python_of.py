@@ -19,7 +19,13 @@ k = ak/a
 omega = 2*pi*freq
 g = 9.81
 
+x_Start = 1.
+x_end = 4.
 
+start_idx = np.nanargmin(abs(X[:,0,0]-x_Start))
+end_idx = np.nanargmin(abs(X[:,0,0]-x_end))
+
+print("start end x ", start_idx, end_idx)
 print('shapes ', X.shape, U.shape, alphawater.shape)
 
 

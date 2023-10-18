@@ -1,4 +1,4 @@
-
+#velocity profile mean between given x values
 from fluidfoam import readscalar, readmesh
 from fluidfoam.readof import readvector
 import matplotlib.pyplot as plt
@@ -6,7 +6,7 @@ from numpy import sqrt, linspace
 import numpy as np
 from stokes import *
 sol = '../waveMakerPiston'
-timename = '9.1'
+timename = '7.7'
 alphawater = readscalar(sol, timename, 'alpha.water', structured=True)
 X, Y, Z = readmesh(sol, structured=True)
 U = readvector(sol, timename, 'U', structured=True)
@@ -19,6 +19,7 @@ k = ak/a
 omega = 2*pi*freq
 g = 9.81
 
+<<<<<<< HEAD
 x_Start = 1.
 x_end = 4.
 
@@ -28,6 +29,19 @@ end_idx = np.nanargmin(abs(X[:,0,0]-x_end))
 print("start end x ", start_idx, end_idx)
 print('shapes ', X.shape, U.shape, alphawater.shape)
 
+=======
+x_min = 2
+x_max = 3 
+idx_min = np.nanargmin(np.abs(X[:,0,0]-x_min))
+idx_max = np.nanargmin(np.abs(X[:,0,0]-x_max))
+
+print("shapes ", X.shape, U.shape) 
+X = X[idx_min:idx_max,:,:]
+Z = Z[idx_min:idx_max,:,:]
+U = U[:,idx_min:idx_max,:,:]
+alphawater = alphawater[idx_min:idx_max,:,:]
+print("shapes ", X.shape, U.shape)
+>>>>>>> 66e7997512772ebc340554fa81204399d22deeea
 
 alpha = np.zeros((nz))
 for i in range(nz):

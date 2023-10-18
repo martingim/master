@@ -20,9 +20,9 @@ g = 9.81
 
 plt.figure()
 ###plots at certain x values
-X0 = [1, 1.1, 1.2, 1.3, 1.4]
+X0 = [2, 2.1, 2.2, 2.3, 2.4]
 
-
+legend = []
 for x0 in X0:
     idx = np.nanargmin(np.abs(X-x0))
     x0 = X[idx]
@@ -38,7 +38,10 @@ for x0 in X0:
     print('alphashpae ', alpha.shape)
     plt.plot(alpha,z)
     print(z[-1])
+    legend.append("x=" + str(x0))
 
+legend.append("analytical")
 z0 = linspace(-1, a, 1000)
 plt.plot(alpha_kz_stokes(k, z0), z0)
+plt.legend(legend)
 plt.show()

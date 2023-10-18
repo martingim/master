@@ -1,6 +1,7 @@
 import numpy as np
 
 def StokesEta(k, h, a, theta):
+    print("in Eta ", type(k), type(h))
     sigma = np.tanh(k * h)
     alpha1 = np.cosh(2 * k * h)
     
@@ -36,4 +37,4 @@ def StokesEta(k, h, a, theta):
     )
     
     eta = eta1 + eta2 + eta3 + eta4 + eta5
-    return eta
+    return eta, eta1, eta2, eta3, eta4, eta5

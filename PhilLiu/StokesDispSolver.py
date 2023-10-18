@@ -10,7 +10,7 @@ def StokesDispSolver(**kwargs):
 
     Results = {}
     Results['h'] = h
-    k = sp.symbols('k')
+    k = sp.Symbol('k')
     g = 9.81
     alpha1 = sp.cosh(2 * k * h)
     sigma = sp.tanh(k * h)
@@ -26,8 +26,8 @@ def StokesDispSolver(**kwargs):
         omega4 = (a ** 4 * k ** 4 * (20 * alpha1 ** 5 + 112 * alpha1 ** 4
                                     - 100 * alpha1 ** 3 - 68 * alpha1 ** 2 - 211 * alpha1 + 328)) / (32 * (alpha1 - 1) ** 5)
         omegaFun = omega0 * (1 + omega2 + omega4) - omega
-        kResults = sp.solve(omegaFun, k)
-        kResults = [k_val.evalf() for k_val in kResults]
+        kResults = [sp.nsolve(omegaFun, 10)]
+        
 
         Results['a'] = a
         sigma = sp.tanh(kResults[0] * h)
@@ -91,7 +91,7 @@ def StokesDispSolver(**kwargs):
 
         omega2 = kResults[0] ** 2 * a ** 2 * (2 * alpha1 ** 2 + 7) / 4 / (alpha1 - 1) ** 2
         omega4 = (a ** 4 * kResults[0] ** 4 * (20 * alpha1 ** 5 + 112 * alpha1 ** 4
-                                             - 100 * alpha1 ** 3 - 68 * alpha1 ** 2 - 211 * alpha1 + 328)) / (32 * (alpha1 - 1) ** 5
+                                             - 100 * alpha1 ** 3 - 68 * alpha1 ** 2 - 211 * alpha1 + 328)) / (32 * (alpha1 - 1) ** 5)
         Results['a'] = a
         Results['aw'] = a * (1 + kResults[0] ** 2 * a ** 2 * B31 + kResults[0] ** 4 * a ** 4 * B51)
         Hout = 2 * a + 2 * (B31 + B33) * kResults[0] ** 2 * a ** 3 + 2 * (B51 + B53 + B55) * kResults[0] ** 4 * a ** 5
@@ -121,7 +121,7 @@ def StokesDispSolver(**kwargs):
         Results['L'] = modeNo * sp.pi / kResults[0]
 
     return Results
-
-# Example usage:
-Results = StokesDispSolver(h=30, a=2.5, T=5, mode=1)
-print(Results)
+if __name__ == "__main__":
+    # Example usage:
+    Results = StokesDispSolver(h=30, a=2.5, T=5, mode=1)
+    print(Results)

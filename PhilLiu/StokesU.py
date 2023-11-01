@@ -1,6 +1,6 @@
 import numpy as np
 
-def stokes_u(k, h, a, theta, z):
+def StokesU(k, h, a, theta, z):
     g = 9.81
     omega0 = np.sqrt(g * k * np.tanh(k * h))
     sigma = np.tanh(k * h)

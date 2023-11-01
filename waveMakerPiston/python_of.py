@@ -6,7 +6,7 @@ from numpy import sqrt, linspace
 import numpy as np
 from stokes import *
 sol = '../waveMakerPiston'
-timename = '7.7'
+timename = '9.9'
 alphawater = readscalar(sol, timename, 'alpha.water', structured=True)
 X, Y, Z = readmesh(sol, structured=True)
 U = readvector(sol, timename, 'U', structured=True)

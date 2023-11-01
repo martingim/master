@@ -6,19 +6,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Input region
-h0 = 10.
+h0 = 0.5
 modeNo = 1
-a = 1.6
-T = 5
+H = 0.0093*2
+T = 1/2.25
 theta0 = np.arange(0, 2 * np.pi, 0.01)
 
 # Call StokesDispSolver
-Result = StokesDispSolver(h=h0, T=T, a=a, mode=modeNo)
+Result = StokesDispSolver(h=h0, T=T, H=H, mode=modeNo)
 Result['k'] = float(Result['k'])
-print(type(Result['k']))
+h = Result['h']
 
-print(type(Result['h']))
-Result['h'] = float(Result['h'])
 if modeNo == 1:
     a = Result['a']
     H = Result['H']

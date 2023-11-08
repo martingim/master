@@ -8,19 +8,49 @@ coord_config
 h = 0.33; %heightof the water surface at rest
 
 close all
+
 %% Perform PIV
+force_PIV = false; %true: Force recalculating the PIV or 
+%                   false:just PIV on the ones that 
+%                         aren't saved in velocities.mat
 n_runs = 15;
-n_waves = 1;
-max_arrows = 50; %max number of arrows in one dim in the quiver plots
+n_waves = 3;
 %height = 0.33;
 
 %%Perform PIV
-for run_number=11:n_runs
+
+for run_number=1:n_runs
     for wave=1:n_waves
-        perform_PIV(run_number, wave);
-        disp('PIV performed');
+        disp("run:" + run_number + " | wave:" + wave)
+        if force_PIV
+            perform_PIV(run_number, wave); %#ok<UNRCH>
+        else
+            try
+                load("velocities.mat")
+                run_velocities = velocities(run_number);
+                run_velocities(wave);
+                disp("PIV already performed moving on to next wave")
+            catch
+                perform_PIV(run_number, wave);
+            end
+        end
     end
 end
+
+
+
+%% Quiver plot
+run_number = 8;
+pair_number = 2;
+max_arrows = 50; %maximum number of arrows in one dimension in the quiver plot
+quiver_plot(run_number, pair_number, max_arrows)
+
+
+%% plot velocity under crest
+run_number = 8;
+pair_number = 1;
+plot_velocity_under_crest(run_number, pair_number);
+
 
 %% Plot velocities
 run_number =8;
@@ -46,7 +76,7 @@ alpha = containers.Map('KeyType', 'double', 'ValueType', 'any');
 crest_mask = containers.Map('KeyType', 'double', 'ValueType', 'any');
 y_scaled = containers.Map('KeyType', 'double', 'ValueType', 'any');
 for wave = 1:3
-    [y_scaled(wave), u_crest_scaled, alpha(wave), crest_mask(wave)] = plot_velocities(run_number, wave, 50);
+    [y_scaled(wave), u_crest_scaled, alpha(wave), crest_mask(wave)] = plot_velocities(run_number, wave);
     %close all
 end
 

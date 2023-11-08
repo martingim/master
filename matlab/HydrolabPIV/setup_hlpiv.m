@@ -3,4 +3,4 @@ addpath(p);
 javaaddpath(['src' filesep 'measures']);
 javaaddpath(['src' filesep 'interp']);
 
-addpath images
+%addpath images

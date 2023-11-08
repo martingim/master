@@ -1,4 +1,8 @@
 %Setup
+current_path = cd;
+cd '/home/martin/Documents/master/matlab/HydrolabPIV';
+setup_hlpiv
+cd(current_path)
 image_names
 coord_config
 h = 0.33; %heightof the water surface at rest

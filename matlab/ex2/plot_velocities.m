@@ -1,12 +1,11 @@
-function [y_scaled, u_crest_scaled, alpha, crest_mask] = plot_velocities(run_number, pair_number, max_arrows)
+function [y_scaled, u_crest_scaled, alpha, crest_mask] = plot_velocities(run_number, pair_number)
 %%plots the velocity fields
 
-scale = 3;
-height = 0.33;
+height = 0.33; 
 
 %% load data and parameters
-load('velocities.mat')
-load('params.mat')
+load velocities.mat velocities
+load params.mat params
 
 %load parameters for plotting analytical solutions
 p = params(run_number);
@@ -29,47 +28,6 @@ idx = squeeze(UVw(5,:,:));
 %potential of wave moving to the right
 %phi = a*g/omega*exp(k*y)*sin(k*x-omega*t);
 u = @(x, y) a*k*g/omega*exp(k*y).*cos(k*x-omega*t);
-v = @(x, y) a*k*g/omega*exp(k*y).*sin(k*x-omega*t);
-
-
-%% make New mask for quiver plots based on max_arows
-quiver_idx = idx;
-if size(quiver_idx, 2)>max_arrows || size(quiver_idx, 1)>max_arrows
-    quiver_idx = zeros(size(quiver_idx));
-    if size(quiver_idx, 1)>max_arrows
-        interval_x = floor(size(quiver_idx, 1)/max_arrows);
-    else
-        interval_x = 1;
-    end
-    if size(quiver_idx, 2)>max_arrows
-        interval_y = floor(size(quiver_idx, 2)/max_arrows);
-    else
-        interval_y = 1;
-    end
-    
-    quiver_idx(1:interval_x:end, 1:interval_y:end) = 1;
-    quiver_idx = logical(quiver_idx.*idx);
-end
-
-
-%% Quiver plots
-
-%World
-figure;
-hold on;
-quiver(xw(quiver_idx),yw(quiver_idx),Uw(quiver_idx),Vw(quiver_idx), scale);
-legend('velocity')
-title('world')
-xlabel('x[m]')
-ylabel('y[m]')
-hold off;
-
-%Analytical
-figure;
-quiver(xw(quiver_idx), yw(quiver_idx), u(xw(quiver_idx), yw(quiver_idx)), v(xw(quiver_idx), yw(quiver_idx)), scale)
-title('analyctical')
-xlabel('x[m]')
-ylabel('y[m]')
 
 
 %% Velocity profile

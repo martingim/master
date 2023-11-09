@@ -51,6 +51,11 @@ run_number = 8;
 pair_number = 1;
 plot_velocity_under_crest(run_number, pair_number);
 
+%% Plot Alpha
+run_number = 8;
+pair_number = 3;
+plot_alpha(run_number, pair_number)
+
 
 %% Plot velocities
 run_number =8;

@@ -4,6 +4,7 @@ function [y_scaled, u_crest_scaled] = plot_velocity_under_crest(run_number, pair
 %% y_scaled = y/height
 %% u_crest_scaled = u/(a*omega)
 
+plot_crest_finding = false;
 height = 0.33; 
 
 %% load data and parameters
@@ -33,31 +34,22 @@ idx = squeeze(UVw(5,:,:));
 u = @(x, y) a*k*g/omega*exp(k*y).*cos(k*x-omega*t);
 
 
-%% Velocity profile
+%% Find crest
 
 %find the crest by finding the vertical slice with the smallest vertical
 %veloctiy
-figure;
-V = Vw;
-V(isnan(Uw))=0;
-v_abs = abs(V);
-v_mean = mean(v_abs, 1);
+[crest_idx, v_mean, v_mean_lowpass] = find_crest(Vw);
+if plot_crest_finding
+    figure;
+    hold on
+    plot(xw(1,:), v_mean_lowpass)
+    plot(xw(1,:), v_mean, 'r'); 
+    plot(xw(1,crest_idx), v_mean_lowpass(crest_idx), 'xb')
+    title('mean v over y')
+    legend('lowpass', 'data', 'chosen x point')
+end
 
-%perform lowpass to smooth the data
-v_mean_lowpass = lowpass(v_mean, 0.001);
-plot(xw(1,:), v_mean_lowpass)
-%remove the leftmost and rightmost part of the data
-v_mean_lowpass(1:floor(size(v_mean_lowpass,2)*0.25)) = NaN;
-v_mean_lowpass(floor(size(v_mean_lowpass,2)*0.75):end) = NaN;
-
-hold on
-[ min_v, crest_idx] = min(v_mean_lowpass);
-plot(xw(1,:), v_mean, 'r'); 
-plot(xw(1,crest_idx), min_v, 'xb')
-title('mean v over y')
-legend('lowpass', 'data', 'chosen x point')
-%find the velocity profile at the crest
-
+%% Velocity profile
 u_crest = Uw(:,crest_idx-1:crest_idx+1);
 u_crest = mean(u_crest, 2);
 u_crest = u_crest(idx(:,crest_idx)&idx(:,crest_idx-1)&idx(:,crest_idx+1));

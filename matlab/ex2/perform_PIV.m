@@ -92,6 +92,7 @@ params_this_run = containers.Map;
 params_this_run('a') = surface_height(run_number);
 params_this_run('k') = k;
 params_this_run('omega') = omega;
+params_this_run('h') = 0.33;
 
 params(run_number) = params_this_run;
 

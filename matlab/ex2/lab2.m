@@ -51,10 +51,14 @@ run_number = 8;
 pair_number = 1;
 plot_velocity_under_crest(run_number, pair_number);
 
-%% Plot Alpha
+%% Plot Alpha for one wave 
 run_number = 8;
 pair_number = 3;
 plot_alpha(run_number, pair_number)
+
+%% Plot alpha for one run
+
+%% Plot alpha for all runs
 
 
 %% Plot velocities

@@ -1,0 +1,3 @@
+[submodule "matlab/stokesWave"]
+	path = matlab/stokesWave
+	url = https://github.com/KuifengZhao/stokesWave.git

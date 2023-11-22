@@ -1,4 +1,4 @@
-function [] = plot_alpha(run_number, pair_number)
+function [alpha, alpha_theoretical, y_at_crest, y_below_crest_scaled] = plot_alpha(run_number, pair_number, create_plot)
 
 load velocities.mat velocities
 load params.mat params
@@ -22,6 +22,9 @@ xw = squeeze(UVw(3,:,:));
 yw = squeeze(UVw(4,:,:));
 idx = squeeze(UVw(5,:,:));
 [crest_idx, ~, ~] = find_crest(Vw);
+y_at_crest = yw(:,crest_idx)/h;
+y_to_crest = yw(yw(:,1)<=a, crest_idx);
+y_below_crest_scaled = y_to_crest/h;
 %alpha analytical
 alpha_analytical = @(y) exp(k*y);
 
@@ -44,15 +47,16 @@ for i=1:M
 end
 
 alpha = omega/(a*g*k)*V_norm_mean;
+alpha_theoretical = alpha_analytical(y_to_crest);
+if create_plot
+    figure
+    hold on
+    plot(alpha, y_at_crest, 'x')
+    plot(alpha_theoretical, y_below_crest_scaled)
+    legend('measured', 'theoretical')
+    title('Alpha plot')
+    xlabel('$\alpha$', 'interpreter', 'latex', 'FontSize', 20)
+    ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 20, 'rotation', 0)
+end
 
-figure
-hold on
-y_to_crest = yw(yw(:,1)<0.02, crest_idx);
-plot(alpha, yw(:,crest_idx)/h, 'x')
-plot(alpha_analytical(y_to_crest), y_to_crest/h)
-legend('measured', 'theoretical')
-title('Alpha plot')
-xlabel('$\alpha$', 'interpreter', 'latex', 'FontSize', 20)
-ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 20, 'rotation', 0)
-
-
+end

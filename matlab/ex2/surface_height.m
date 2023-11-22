@@ -1,6 +1,9 @@
 function [a] = surface_height(run_number)
+%%
+%%
 image_names
 height_config
+close all
 folder = day_folder(run_number);
 f = frequency(run_number); %The frequency of the run
 [omega,T,K,LAMBDA,CP,CG] = wparam(f, 0.33); %calculate the wavenumber and phase velocity
@@ -21,7 +24,7 @@ sensordata(sensordata<350|sensordata>850) = NaN; %replace the outliers with NaN
 
 %convert the data from the sensors to measured surface elevation in meters
 measured_surface = [sensor1(sensordata(:,1)), sensor2(sensordata(:,2)) sensor3(sensordata(:,3)) sensor4(sensordata(:,4))];
-
+measured_surface = fillmissing(measured_surface,'linear');
 %subtract the mean from the surface to get zero mean
 surface_mean = mean(measured_surface, 'omitnan');
 measured_surface = measured_surface -surface_mean;
@@ -49,11 +52,29 @@ LMin = islocalmin(measured_surface(:,1), 'MinSeparation', min_separation);
 plot(time(LMin), surf(LMin), 'x')
 plot(time(LMax), surf(LMax), 'x')
 
+%% Lowpass to smooth the sensor data
+figure;
+hold on
+plot(time, measured_surface(:,1))
+lowpass_surface = lowpass(measured_surface, 0.1);
+plot(time, lowpass_surface(:,1))
+legend('raw', 'lowpass')
 
-%%
+%% Without lowpass
 %find the crests and troughs of the measured surface to find the mean
-%amplitude of the waves. %%maybe change this later to only look at one wave
-surf = measured_surface(surface_frame_start:surface_frame_end,:); %change this to use the sensor_offset
+%amplitude of the waves.
+% surf = measured_surface(surface_frame_start:surface_frame_end,:); %change this to use the sensor_offset
+% mean_amplitude = zeros(size(surf, 2),1);
+% for i=1:size(surf, 2)
+%     LMax = islocalmax(surf(:,i), 'MinSeparation', min_separation);
+%     LMin = islocalmin(surf(:,i), 'MinSeparation', min_separation);
+%     mean_amplitude(i) = (mean(surf(LMax,i))-mean(surf(LMin, i)))/2;
+% end
+% 
+% a = mean(mean_amplitude);
+
+%% With Lowpass
+surf = lowpass_surface(surface_frame_start:surface_frame_end,:); %change this to use the sensor_offset
 mean_amplitude = zeros(size(surf, 2),1);
 for i=1:size(surf, 2)
     LMax = islocalmax(surf(:,i), 'MinSeparation', min_separation);
@@ -62,7 +83,8 @@ for i=1:size(surf, 2)
 end
 
 a = mean(mean_amplitude);
-
+%msg = sprintf('a=%f, a_lowpass=%f, Diff/a=%f', a, a_low, abs(a-a_low)/a);
+%disp(msg);
 
 %% plot the measured surface with theoretical linear and non linear
 t = 0:0.001:2;
@@ -73,7 +95,7 @@ eta_non_linear = a*cos(-omega*t) +  0.5*a^2*K*cos(2*(-omega*t)) + 3/8*K^2*a^3*co
 crests = islocalmax(surf(:,1), 'MinSeparation', 10);
 crest_found = -1;
 while crest_found<0
-    [m, start_idx] = max(crests); %the index to start plotting the measured surface from
+    [~, start_idx] = max(crests); %the index to start plotting the measured surface from
     
         
     if surf(start_idx)<0.9*a
@@ -103,14 +125,23 @@ P1 = P2(1:L/2+1);
 P1(2:end-1) = 2*P1(2:end-1);
 Fs = 100;
 frequencies = Fs*(0:(L/2))/L;
-
+amp =  max(P1); %alpitude of the first harmonic
 figure;
 hold on
-plot(frequencies, P1)
+plot(frequencies, P1, 'LineWidth', 3)
 plot(f, 0, 'x')
 plot(2*f, 0, 'x')
 plot(3*f, 0, 'x')
 legend('fft of the measured surface', 'f', '2f', '3f')
 xlabel('frequency[Hz]')
 xlim([0 f*3.2])
+
+%% save the results to params.mat
+load params.mat params
+p = params(run_number);
+p('amplitude_first_harmonic') = amp;
+p('a') = a;
+%p('a_low') = a_low;
+params(run_number) = p;
+save('params.mat', 'params')
 end

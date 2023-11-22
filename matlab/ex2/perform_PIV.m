@@ -39,6 +39,7 @@ catch %if it doesn't work mask and save the mask.
     save(mask2_name, 'mask2')
 end
 
+
 %% Perform PIV passes
 piv1 = [];
 for i= 1:size(window_sizes, 2)
@@ -89,7 +90,6 @@ catch
     params = containers.Map('KeyType', 'double', 'ValueType', 'any');
 end
 params_this_run = containers.Map;
-params_this_run('a') = surface_height(run_number);
 params_this_run('k') = k;
 params_this_run('omega') = omega;
 params_this_run('h') = 0.33;

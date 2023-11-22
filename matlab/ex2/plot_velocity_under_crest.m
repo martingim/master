@@ -15,6 +15,7 @@ load params.mat params
 p = params(run_number);
 a = p('a');
 k = p('k');
+%k5 = p('k5');
 omega = p('omega');
 g = 9.82;
 t = 0;
@@ -62,8 +63,8 @@ hold on
 plot(u_crest_scaled, y_scaled, 'x')
 plot(1/(a*omega)*u(xw(crest_mask)*0, yw(crest_mask)), y_scaled);
 
-legend('measured', 'theoretical')
-title('theoretical and measured horizontal velocity under the crest')
+legend('measured', 'theoretical', 'Location','southeast')
+title(sprintf('horizontal velocity under the crest run:%d, wave pair:%d', run_number, pair_number))
 
 xlabel('$\frac{v}{a\omega}$', 'interpreter', 'latex', 'FontSize', 20)
 ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 20, 'rotation', 0)

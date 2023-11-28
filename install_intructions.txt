@@ -23,8 +23,14 @@ make libglutils.a libfb_osmesa.a libfb_glx.a
 #edit
 sudo nano /etc/ld.so.conf.d/libc.conf
 #add line
-/home/martin/Documents/master/src
+/home/martin/Documents/master/basilisk/src
 sudo ldconfig
 
 pip3 install pandas
 pip3 install fluidfoam
+
+
+#MATLAB
+Addpath HydrolabPIV
+addpath Stokes-wave-main
+

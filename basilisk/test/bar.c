@@ -11,29 +11,46 @@ corresponding to the dispersion relation.
 This test case is discussed in [Popinet
 (2020)](/Bibliography#popinet2020) for the layered version. */
 
-#include "grid/multigrid.h"
+#include "grid/multigrid1D.h"
 #include "layered/hydro.h"
 #include "layered/nh.h"
 #include "layered/remap.h"
 #include "layered/check_eta.h"
 #include "layered/perfs.h"
 
+#include "CFDwavemaker.h"
 /**
 The basin needs to be long enough so as to minimise the influence of
 wave reflection at the outlet. Relatively high resolution is needed to
 capture the dynamics properly. */
 
+//Define parameters
+#define l_ 7. //the length of the tank?
+#define k_ 19.71 //the wavenmuber
+#define h_ .33 //the height of the tank or the depth of the water?
+#define g_ 9.81
+#define Tmax = 10.*T0
+int vtucount=0;
+
+
+
 double amplitude = 0.01;
 double period = 1/1.75;
 
 int main() {
+  size(l_);
+  periodic(right);
+  //periodic(top);
   N = 256;
-  L0 = 10;
-  G = 9.81;
-  nl = 2;  
+  L0 = l_;
+  G = g_;
+  nl = 1;  
   breaking = 0.1;
   CFL_H = 0.5;
+
+  wave_Initialize();
   run();
+  wave_Cleanup();
 }
 
 /**
@@ -47,18 +64,31 @@ period of 2.02 seconds matches that of the experiment. */
 event init (i = 0)
 {
 
-  u.n[left]  = - radiation (amplitude*sin(2.*pi*t/period));
-  u.n[right] = + radiation (0);
-  /**
-  Here we define the bathymetry, see e.g. Figure 3 of [Yamazaki et al,
-  2009](/src/references.bib#yamazaki2009). */
 
-  foreach() {
-    zb[] = -0.335;
-    foreach_layer()
-      h[] = max(- zb[], 0.)/nl;
+  CFL = 0.1;
+  geometric_beta((1./3) * h_ / nl, true);
+  foreach() 
+  {
+    zb[] = -h_;
+    double H = wave_SurfElev(x, y, 0) - zb[];
+    double z = zb[];
+    foreach_layer() 
+      {
+      h[] = H * beta[point.l];
+      z += h[] / 2.;
+      u.x[] = wave_VeloX(x, y, z, 0);
+      //u.y[] = wave_VeloY(x, y, z, 0);
+      w[] = wave_VeloZ(x, y, z, 0);
+      z += h[] / 2.;
+      }
   }
+  boundary(all);
+
 }
+
+
+event viscous_term(i++)
+horizontal_diffusion((scalar*) {u}, nu, dt);
 
 event end(t=1){
   fprintf(stderr, "END");
@@ -74,7 +104,7 @@ void plot_profile (double t, FILE * fp)
 {
   fprintf (fp,
 	   "set title 't = %.2f'\n"
-	   "p [0:10][-0.12:0.04]'-' u 1:3:2 w filledcu lc 3 t ''\n", t);
+	   "p [0:10][0][-0.35:0.04]'-' u 1:3:2 w filledcu lc 3 t ''\n", t);
   foreach()
     fprintf (fp, "%g %g %g\n", x, eta[], zb[]);
   fprintf (fp, "e\n\n");
@@ -144,6 +174,11 @@ Gauge gauges[] = {
   {"WG11", 21},
   {NULL}
 };
+
+event movie (t=0;t+=1)
+{
+  output_field();
+}
 
 event output (i += 2; t <= 15)
   output_gauges (gauges, {eta});

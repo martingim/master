@@ -64,7 +64,7 @@ frequency = [1.75;1.75;2.25;2.25;1.75;
             1.75;1.75;2.25;2.25;1.75;
             1.75;1.75;1.75;2.25;2.25];
 
-surface_start_stop = [  1000 2000;%can check first ones
+surface_start_stop = [  1000 5000;%can check first ones
                         1000 2000;
                         800 2000;
                         800 2000;

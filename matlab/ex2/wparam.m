@@ -7,14 +7,14 @@ function  [sigma,T,k,lambda,Cp,Cg]=wparam(f,H);
 
 
 
-g=9.8;
+g=9.81;
 sigma=2*pi*f;
 T=1/f;
 
 k0=0.00001;
 k1=sigma^2/(g*tanh(k0*H));
 
-while abs(k1-k0)>0.00001
+while abs(k1-k0)>0.0000001
     k0=k1;
     k1=sigma^2/(g*tanh(k0*H));
 end

@@ -1,6 +1,6 @@
 function [a] = surface_height(run_number)
 %%
-%%
+%run_number = 1
 image_names
 height_config
 close all
@@ -76,13 +76,52 @@ legend('raw', 'lowpass')
 %% With Lowpass
 surf = lowpass_surface(surface_frame_start:surface_frame_end,:); %change this to use the sensor_offset
 mean_amplitude = zeros(size(surf, 2),1);
-for i=1:size(surf, 2)
-    LMax = islocalmax(surf(:,i), 'MinSeparation', min_separation);
-    LMin = islocalmin(surf(:,i), 'MinSeparation', min_separation);
-    mean_amplitude(i) = (mean(surf(LMax,i))-mean(surf(LMin, i)))/2;
+sensor_n = 2;
+for i=sensor_n %%Now only uses one sensor
+    LMax = islocalmax(surf(:,sensor_n), 'MinSeparation', min_separation);
+    LMin = islocalmin(surf(:,sensor_n), 'MinSeparation', min_separation);
+    mean_amplitude(i) = (mean(surf(LMax,sensor_n))-mean(surf(LMin, sensor_n)))/2;
 end
 
-a = mean(mean_amplitude);
+n_pairs = min([size(surf(LMax,sensor_n), 1) size(surf(LMin, sensor_n), 1)]);
+crests = 1;
+troughs = 1;
+amplitudes = zeros(n_pairs*2-1,1);
+
+for i=1:2:n_pairs*2-1
+    amplitudes(i) = 1;
+    amplitudes(i+1) = 1;
+end
+troughs = sum(LMin);
+crests = sum(LMin);
+number_of_pairs = min(sum(LMin), sum(LMax));
+
+i = 1;
+amplitudes = [];
+crest_index = 0;
+trough_index = 0;
+while i<=size(LMin, 1)
+    % check if it is a crest or trough
+    if LMax(i) == 1
+        crest_index = i;
+        if trough_index ~= 0
+            amplitudes = [amplitudes surf(crest_index, sensor_n)-surf(trough_index, sensor_n)];
+        end
+    elseif LMin(i) == 1
+        trough_index = i;
+        if crest_index  ~= 0
+            amplitudes = [amplitudes surf(crest_index, sensor_n)-surf(trough_index, sensor_n)];
+        end
+    end
+    %increment the index
+    i = i+1;
+end
+
+
+figure;
+plot(amplitudes)
+title(sprintf('the amplitudes of the waves passing sensor %d', sensor_n));
+a = mean(amplitudes)/2;
 %msg = sprintf('a=%f, a_lowpass=%f, Diff/a=%f', a, a_low, abs(a-a_low)/a);
 %disp(msg);
 
@@ -141,6 +180,7 @@ load params.mat params
 p = params(run_number);
 p('amplitude_first_harmonic') = amp;
 p('a') = a;
+p('std_a') = std(amplitudes);
 %p('a_low') = a_low;
 params(run_number) = p;
 save('params.mat', 'params')

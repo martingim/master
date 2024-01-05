@@ -38,7 +38,9 @@ for run_number=1:n_runs
 end
 
 %% Surface height and calculate the amplitude of the waves
+n_runs = 15;
 for run_number=1:n_runs
+    disp(run_number)
     surface_height(run_number);
 end
 close all

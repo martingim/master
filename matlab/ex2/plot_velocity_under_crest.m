@@ -15,6 +15,8 @@ load params.mat params
 p = params(run_number);
 a = p('a');
 k = p('k');
+a_std = p('std_a');
+
 %k5 = p('k5');
 omega = p('omega');
 g = 9.82;
@@ -32,7 +34,7 @@ idx = squeeze(UVw(5,:,:));
 %%  analytical solution
 %potential of wave moving to the right
 %phi = a*g/omega*exp(k*y)*sin(k*x-omega*t);
-u = @(x, y) a*k*g/omega*exp(k*y).*cos(k*x-omega*t);
+u = @(x, y, amplitude) amplitude*k*g/omega*exp(k*y).*cos(k*x-omega*t);
 
 
 %% Find crest
@@ -51,6 +53,8 @@ if plot_crest_finding
 end
 
 %% Velocity profile
+%%create mask for world bassed on the three columns closest to the crest 
+% coordinates and scale y
 u_crest = Uw(:,crest_idx-1:crest_idx+1);
 u_crest = mean(u_crest, 2);
 u_crest = u_crest(idx(:,crest_idx)&idx(:,crest_idx-1)&idx(:,crest_idx+1));
@@ -58,12 +62,38 @@ crest_mask = idx(:,crest_idx)&idx(:,crest_idx-1)&idx(:,crest_idx+1);
 u_crest_scaled = 1/(a*omega)*u_crest;
 y_scaled = 1/height*yw(crest_mask);
 
+%% create shaded area based on the standard deviation of the amplitude'
 figure;
-hold on 
-plot(u_crest_scaled, y_scaled, 'x')
-plot(1/(a*omega)*u(xw(crest_mask)*0, yw(crest_mask)), y_scaled);
+hold on
 
-legend('measured', 'theoretical', 'Location','southeast')
+yw_at_crest = yw(:,crest_idx);
+
+yw_min = min(yw_at_crest):0.0001:a-a_std;
+y_min = 1/height*yw_min;
+
+yw_max = min(yw_at_crest):0.0001:a+a_std;
+y_max = 1/height*yw_max;
+a-a_std
+a+a_std
+u_min = 1/(a*omega)*u(yw_min*0, yw_min, a-a_std);
+u_max = 1/(a*omega)*u(yw_max*0, yw_max, a+a_std);
+
+fill([u_min flip(u_max)], [y_min flip(y_max)], [0.8 0.8 0.8])
+
+plot(u_min, y_min)
+plot(u_max, y_max)
+
+% plot the analytical velocity
+yw_analytical = min(yw_at_crest):0.0001:a;
+y_analytical_scaled = 1/height*yw_analytical;
+plot(1/(a*omega)*u(y_analytical_scaled*0, yw_analytical, a), y_analytical_scaled);
+
+
+%plot calculated velocity
+plot(u_crest_scaled, y_scaled, 'x')
+
+
+legend('', 'a - 1 standard deviation', 'a + 1 standard deviation', 'analytical solution', 'experimental','Location','southeast')
 title(sprintf('horizontal velocity under the crest run:%d, wave pair:%d', run_number, pair_number))
 
 xlabel('$\frac{v}{a\omega}$', 'interpreter', 'latex', 'FontSize', 20)

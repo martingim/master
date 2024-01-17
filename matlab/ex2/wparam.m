@@ -1,6 +1,6 @@
 %[SIGMA,T,K,LAMBDA,CP,CG]=WPARAM(F,H)
 % This function calculates these different wave parameters using the 
-% full dispersion relationship (sigma^2=g*k*tanh(k*H)) given the 
+% full dispersion relationship (sigma=omega.^2/(g*k) and sigma = tanh(k*H)) given the 
 % depth of the water H and the frequency f.
 
 function  [sigma,T,k,lambda,Cp,Cg]=wparam(f,H);

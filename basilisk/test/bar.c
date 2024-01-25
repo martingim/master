@@ -12,45 +12,31 @@ This test case is discussed in [Popinet
 (2020)](/Bibliography#popinet2020) for the layered version. */
 
 #include "grid/multigrid1D.h"
-#include "layered/hydro.h"
-#include "layered/nh.h"
-#include "layered/remap.h"
+#if ML
+  #include "layered/hydro.h"
+  #include "layered/nh.h"
+  #include "layered/remap.h"
+#else
+  #include "green-naghdi.h"
+#endif
 #include "layered/check_eta.h"
 #include "layered/perfs.h"
 
-#include "CFDwavemaker.h"
 /**
 The basin needs to be long enough so as to minimise the influence of
 wave reflection at the outlet. Relatively high resolution is needed to
 capture the dynamics properly. */
 
-//Define parameters
-#define l_ 7. //the length of the tank?
-#define k_ 19.71 //the wavenmuber
-#define h_ .33 //the height of the tank or the depth of the water?
-#define g_ 9.81
-#define Tmax = 10.*T0
-int vtucount=0;
-
-
-
-double amplitude = 0.01;
-double period = 1/1.75;
-
 int main() {
-  size(l_);
-  periodic(right);
-  //periodic(top);
-  N = 256;
-  L0 = l_;
-  G = g_;
-  nl = 1;  
+  N = 2048;
+  L0 = 50;
+  G = 9.81;
+#if ML
+  nl = 2;  
   breaking = 0.1;
   CFL_H = 0.5;
-
-  wave_Initialize();
+#endif
   run();
-  wave_Cleanup();
 }
 
 /**
@@ -64,35 +50,24 @@ period of 2.02 seconds matches that of the experiment. */
 event init (i = 0)
 {
 
+  u.n[left]  = - radiation (0.03*sin(2.*pi*t/2.02));
+  u.n[right] = + radiation (0);
+  
+  /**
+  Here we define the bathymetry, see e.g. Figure 3 of [Yamazaki et al,
+  2009](/src/references.bib#yamazaki2009). */
 
-  CFL = 0.1;
-  geometric_beta((1./3) * h_ / nl, true);
-  foreach() 
-  {
-    zb[] = -h_;
-    double H = wave_SurfElev(x, y, 0) - zb[];
-    double z = zb[];
-    foreach_layer() 
-      {
-      h[] = H * beta[point.l];
-      z += h[] / 2.;
-      u.x[] = wave_VeloX(x, y, z, 0);
-      //u.y[] = wave_VeloY(x, y, z, 0);
-      w[] = wave_VeloZ(x, y, z, 0);
-      z += h[] / 2.;
-      }
+  foreach() {
+    zb[] = -0.533;
+#if ML
+    foreach_layer()
+      h[] = max(- zb[], 0.)/nl;
+#else
+    h[] = - zb[];
+#endif
   }
-  boundary(all);
-
 }
 
-
-event viscous_term(i++)
-horizontal_diffusion((scalar*) {u}, nu, dt);
-
-event end(t=1){
-  fprintf(stderr, "END");
-}
 /**
 We use gnuplot to visualise the wave profile as the simulation
 runs and to generate a snapshot at $t=40$. 
@@ -104,20 +79,11 @@ void plot_profile (double t, FILE * fp)
 {
   fprintf (fp,
 	   "set title 't = %.2f'\n"
-	   "p [0:10][0][-0.35:0.04]'-' u 1:3:2 w filledcu lc 3 t ''\n", t);
+	   "p [0:25][-0.12:0.04]'-' u 1:3:2 w filledcu lc 3 t ''\n", t);
   foreach()
     fprintf (fp, "%g %g %g\n", x, eta[], zb[]);
   fprintf (fp, "e\n\n");
   fflush (fp);
-}
-
-event velocity_profile(t+=0.1){
-  static FILE * fpv = fopen("velocities.txt", "w");
-  double e_y = interpolate(eta, 1., 0.3)+0.335;
-  fprintf(stderr, "eta = %g\n", e_y);
-  for (double y_ = 0.;y_<e_y;y_+=0.05){
-    fprintf(fpv, "%g, %g, %g, %g\n", t, y_, interpolate(u.x, 1., y_), interpolate(eta, 1., y_));
-  }
 }
 
 event profiles (t += 0.05)
@@ -126,7 +92,11 @@ event profiles (t += 0.05)
   foreach (reduction(+:ke) reduction(+:gpe)) {
     double zc = zb[];
     foreach_layer() {
+#if ML      
       double norm2 = sq(w[]);
+#else
+      double norm2 = 0.;
+#endif
       foreach_dimension()
 	norm2 += sq(u.x[]);
       ke += norm2*h[]*dv();
@@ -138,7 +108,7 @@ event profiles (t += 0.05)
   if (i == 0)
     fprintf (fp, "set term x11\n");
   plot_profile (t, fp);
-  fprintf (stderr, "%g %f %g %g\n", t, interpolate (eta, 1., 0.), ke, gpe);
+  fprintf (stderr, "%g %f %g %g\n", t, interpolate (eta, 17.3, 0.), ke, gpe);
 }
 
 /**
@@ -175,14 +145,10 @@ Gauge gauges[] = {
   {NULL}
 };
 
-event movie (t=0;t+=1)
-{
-  output_field();
-}
-
 event output (i += 2; t <= 15)
-  output_gauges (gauges, {eta});
-
+  {
+    output_gauges (gauges, {eta});
+  }
 /**
 The modelled and experimental (circles) timeseries compare quite
 well. The agreement is significantly better than that in [Yamazaki et

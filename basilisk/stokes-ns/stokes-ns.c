@@ -22,7 +22,7 @@ int vtucount = 0;
 double ak = 0.35;
 double RE = 40000.;
 int LEVEL = 7;
-//int maxlevel = 7;
+int maxlevel = 7;
 double Tend = 10;
 /**
 The error on the components of the velocity field used for adaptive
@@ -88,25 +88,6 @@ int main (int argc, char * argv[])
 
 
 
-void save_vtu ( int nf, int j)
-{
-  char name[80];
-  FILE * fp ;
-  sprintf(name, "RES_VTK/res_%4.4d.vtu",j);
-  //nf > 0 ? sprintf(name, "RES_VTK/res_n%3.3d_%4.4d.vtu",pid(),j) : sprintf(name, "RES_VTK/res_%4.4d.vtu",j);
-  fp = fopen(name, "w"); 
-  output_vtu_ascii_foreach ((scalar *) {f,p}, (vector *) {u}, N, fp, false); 
-  fclose (fp);
-}
-
-
-event logfilevtu (t=0.0;t<=Tend;t+=0.04) 
-{
-  save_vtu(0,vtucount);
-  vtucount += 1;
-}
-
-
 /**
 ## Initial conditions
 
@@ -147,18 +128,60 @@ event init (i = 0)
   }
 }
 
-/*
-event adapt(i++)
-{
-  adapt_wavelet({f,u}, (double[]){0.01,uemax,uemax,uemax}, maxlevel, LEVEL);
-}
-*/
-/*
+
+//save the surface profile
 event profiles (t += T0/4.; t <= 2.5*T0) {
-  output_facets (f, stderr);
-  fprintf (stderr, "\n");
+  char name[80];
+  FILE * fp ;
+  sprintf(name, "profiles/res_%4.4f.txt",t);
+  fp = fopen(name, "w"); 
+  output_facets (f, fp);
+  fprintf (fp, "\n");
+  fclose (fp);
 }
-*/
+
+
+//save ordered mesh
+event vtk(t+=0.2;t<Tend){
+  char filename[40];
+  sprintf(filename, "vtk/TIME-%06g.vtk", (t*100));
+  FILE * fp = fopen(filename, "w");
+  output_vtk(all, 100 , fp, true);
+}
+
+
+//save the unordered mesh
+void save_vtu ( int nf, int j)
+{
+  char name[80];
+  FILE * fp ;
+  sprintf(name, "RES_VTK/res_%4.4d.vtu",j);
+  //nf > 0 ? sprintf(name, "RES_VTK/res_n%3.3d_%4.4d.vtu",pid(),j) : sprintf(name, "RES_VTK/res_%4.4d.vtu",j);
+  fp = fopen(name, "w"); 
+  output_vtu_ascii_foreach ((scalar *) {f,p}, (vector *) {u}, N, fp, false); 
+  fclose (fp);
+}
+
+event logfilevtu (t=0.0;t<=Tend;t+=0.04) 
+{
+  save_vtu(0,vtucount);
+  vtucount += 1;
+}
+
+/**
+## Mesh adaptation
+
+On trees, we adapt the mesh according to the error on volume fraction
+and velocity. */
+
+#if TREE
+event adapt (i++) {
+  adapt_wavelet ({f,u}, (double[]){0.01,uemax,uemax,uemax}, maxlevel, LEVEL);
+}
+#endif
+
+
+
 /*
 event logfile (i++)
 {
@@ -173,14 +196,16 @@ event logfile (i++)
   printf ("%g %g %g\n", t/(k_/sqrt(g_*k_)), rho1*ke/2., rho1*g_*gpe + 0.125);
 }
 */
-float progress = 0;
-int barWidth = 80;
-char filled[] = "########################################################################################";
-char empy[] = "                                                                                           ";
+
 
 
 event progressbar(i+=10)
 {
+  float progress = 0;
+  int barWidth = 80;
+  char filled[] = "########################################################################################";
+  char empy[] = "                                                                                           ";
+
   progress = t /Tend;
   int filled_segments = barWidth*progress;
   int empty_segments = barWidth - filled_segments;
@@ -189,35 +214,3 @@ event progressbar(i+=10)
   printf("[%.*s>", filled_segments, filled);
   printf("%.*s]\r", empty_segments, empy);
 }
-
-
-event profiles (t += T0/4.; t <= 2.5*T0) {
-  char name[80];
-  FILE * fp ;
-  sprintf(name, "profiles/res_%4.4f.txt",t);
-  fp = fopen(name, "w"); 
-  output_facets (f, fp);
-  fprintf (fp, "\n");
-  fclose (fp);
-}
-
-
-/*
-event vtk(t+=0.2;t<Tend){
-  char filename[40];
-  sprintf(filename, "vtk/TIME-%06g.vtk", (t*100));
-  FILE * fp = fopen(filename, "w");
-  output_vtk(all, 1<<LEVEL, fp, true);
-}
-*/
-/**
-## Mesh adaptation
-
-On trees, we adapt the mesh according to the error on volume fraction
-and velocity. */
-
-#if TREE
-event adapt (i++) {
-  adapt_wavelet ({f,u}, (double[]){0.01,uemax,uemax,uemax}, LEVEL, 5);
-}
-#endif

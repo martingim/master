@@ -14,4 +14,4 @@ clean:
 	rm *.o ; \
 	rm stokes-ns;\
 	rm vtk/*.vtk;\
-	rm RES_VTK/*;
+	rm vtu/*.vtu;

@@ -22,7 +22,7 @@ number. */
 double ak = 0.35;
 double RE = 40000.;
 int LEVEL = 5;
-int maxlevel = 11;
+int maxlevel = 9;
 double Tend = 20;
 double lx = 20;
 double Ly = 1.;
@@ -60,8 +60,12 @@ void mask_domain(){
 
 int main (int argc, char * argv[])
 {
+  //Make folders for saving data
   mkdir("./vtk",0755);
   mkdir("./vtu",0755);
+  mkdir("./surface_profiles", 0755);
+
+  //Read ak and LEVEL from command line args.
   if (argc > 1)
     LEVEL = atoi (argv[1]);
   if (argc > 2)
@@ -130,10 +134,10 @@ event init (i = 0)
 
 
 //save the surface profile
-event profiles (t += Tend/4.; t <= Tend) {
+event surface_profile (t += Tend/4.; t <= Tend) {
   char name[80];
   FILE * fp ;
-  sprintf(name, "profiles/res_%4.4f.txt",t);
+  sprintf(name, "surface_profiles/res_%4.4f.txt",t);
   fp = fopen(name, "w"); 
   output_facets (f, fp);
   fprintf (fp, "\n");
@@ -158,9 +162,7 @@ event vtu(t+=0.2;t<Tend){
 
 
 /**
-## Mesh adaptation
-
-On trees, we adapt the mesh according to the error on volume fraction
+## Mesh adaptation. We adapt the mesh according to the error on volume fraction
 and velocity. */
 
 

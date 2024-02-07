@@ -34,3 +34,5 @@ pip3 install fluidfoam
 Addpath HydrolabPIV
 addpath Stokes-wave-main
 
+#Python
+sudo apt install python3-meshio

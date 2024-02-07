@@ -11,15 +11,12 @@ omega = 2*pi*f;
 %% solve for k
 
 syms K;
-%sigma = tanh(k*h);
-%sigma = omega.^2/(g*k);
 
 k = vpasolve(omega.^2/(g*K)-tanh(K*H)==0, K, 5);
 %% calculate remaining parameters
 
-sigma = tanh(k*h);
+sigma = tanh(k*H);
 lambda=2*pi/k;
-%Cp=sqrt((g*tanh(k*H))/k);
+
 Cp=sigma/k;
 Cg=(1/(2*sigma))*(g*tanh(k*H)+g*k*H*(sech(k*H))^2);
-

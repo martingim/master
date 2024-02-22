@@ -1,10 +1,11 @@
-function [] = compare_stokes_5th_velocity_profile(run_number, pair_number)
+function [] = compare_stokes_5th_velocity_profile(run_number, pair_number, image_params)
 %UNTITLED2 Summary of this function goes here
 % 
 %%
-h = 0.33;
+water_depth = image_params('water_depth');
+h = water_depth(run_number);
 theta=0;
-plot_velocity_under_crest(run_number, pair_number);
+plot_velocity_under_crest(run_number, pair_number, image_params);
 load params.mat params
 p = params(run_number);
 k = p('k5');

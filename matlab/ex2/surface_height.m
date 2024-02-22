@@ -1,12 +1,17 @@
-function [a] = surface_height(run_number)
+function [a] = surface_height(run_number, image_params)
 %%
 %run_number = 1
-image_names
 height_config
 close all
+day_folder = image_params('day_folder');
+frequency = image_params('frequency');
+surface_start_stop = image_params('surface_start_stop');
+water_depth = image_params('water_depth');
+
+water_depth = water_depth(run_number);
 folder = day_folder(run_number);
 f = frequency(run_number); %The frequency of the run
-[omega,T,K,LAMBDA,CP,CG] = wparam(f, 0.33); %calculate the wavenumber and phase velocity
+[omega,T,K,LAMBDA,CP,CG] = wparam(f, water_depth); %calculate the wavenumber and phase velocity
 sensor_distance = 0.4; %the dstance between the sensors in meters(should maybe change this to a vector)
 %start and stop frame for measuring the elevation of the surface
 surface_frame_start = surface_start_stop(run_number, 1);
@@ -181,6 +186,7 @@ p = params(run_number);
 p('amplitude_first_harmonic') = amp;
 p('a') = a;
 p('std_a') = std(amplitudes);
+p('water_depth') = water_depth;
 %p('a_low') = a_low;
 params(run_number) = p;
 save('params.mat', 'params')

@@ -1,4 +1,4 @@
-function [alpha, alpha_theoretical, y_at_crest, y_below_crest_scaled] = plot_alpha(run_number, pair_number, create_plot)
+function [alpha, alpha_theoretical, y_at_crest, y_below_crest_scaled] = plot_alpha(run_number, pair_number, image_params, create_plot)
 
 load velocities.mat velocities
 load params.mat params
@@ -9,9 +9,9 @@ a = p('a');
 a_std = p('std_a');
 k = p('k');
 omega = p('omega');
-%h = p('h');
-h = 0.33;
-g = 9.82;
+water_depth = image_params('water_depth');
+h = water_depth(run_number);
+g = 9.81;
 t = 0;
 
 %load the velocity fields and world coordinates

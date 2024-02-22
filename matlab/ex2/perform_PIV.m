@@ -1,10 +1,14 @@
-function [UVw, params_this_run] = perform_PIV(run_number, pair_number)
+function [UVw, params_this_run] = perform_PIV(run_number, pair_number, image_params)
 %%perform the piv passes 
 
 %read images and constants
 
-image_names
-coord_config
+
+image_name = image_params('image_name');
+water_depth = image_params('water_depth');
+frequency = image_params('frequency');
+time_between_frames = image_params('time_between_frames');
+tform = image_params('tform');
 
 im1 = imread(image_name(run_number, pair_number*2-1));
 im2 = imread(image_name(run_number, pair_number*2));
@@ -12,7 +16,7 @@ mask1_name = image_name(run_number, pair_number*2-1) + ".mask.mat";
 mask2_name = image_name(run_number, pair_number*2) + ".mask.mat";
 
 
-height = water_depth;
+height = water_depth(run_number);
 f = frequency(run_number);
 [omega,T,k,LAMBDA,CP,CG]=wparam(f,height);
 
@@ -89,7 +93,6 @@ end
 params_this_run = containers.Map;
 params_this_run('k') = k;
 params_this_run('omega') = omega;
-params_this_run('h') = 0.33;
 
 params(run_number) = params_this_run;
 

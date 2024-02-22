@@ -1,3 +1,4 @@
+function [tform] = coord_config()
 %% script for making the coordinate transforms from pixel to world
 close all
 coord_name1 = "MEK4600_G3_21_10_02/2021-02-10_coordinationphoto_C001H001S0001000001.bmp";
@@ -10,7 +11,6 @@ coord = imread(coord_name1);
 
 x0 = 73;
 x1 = 1988;
-y0 = 398;
 y0 = 472;
 y1 = 2020;
 [x_pos, y_pos] = ndgrid(round(x1:(x0-x1)/26:x0), round(y1:(y0-y1)/21:y0));
@@ -110,7 +110,7 @@ world = [wx(:) wy(:)];
 
 %%
 tform = [tform1 tform2 tform3];
-
+end
 
 
 % %make pixel to world transform by selecting points

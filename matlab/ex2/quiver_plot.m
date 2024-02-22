@@ -2,7 +2,6 @@ function [] = quiver_plot(run_number, pair_number, max_arrows)
 
 
 scale = 3; %for the arrows in the quiver plots
-height = 0.33; 
 
 %% load data and parameters
 load('velocities.mat')

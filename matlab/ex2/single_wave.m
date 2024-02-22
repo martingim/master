@@ -42,7 +42,7 @@ pixel = xc(idx,:);
 
 % Define matching reference points in world coordinate
 distance_between_points = 0.01;
-x_positions = (floor(n_points_x/2):-1:-ceil(n_points_x/2)-1)*distance_between_points;
+x_positions = (floor(n_points_x/2):-1:-ceil(n_points_x/2)+1)*distance_between_points;
 y_positions = (-n_points_y+1:1:0)*distance_between_points-top_point_distance_from_surface;
 [wx,wy] = ndgrid(x_positions,y_positions);
 world = [wx(:) wy(:)];

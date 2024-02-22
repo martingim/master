@@ -2,7 +2,7 @@
 close all
 coord_name1 = "MEK4600_G3_21_10_02/2021-02-10_coordinationphoto_C001H001S0001000001.bmp";
 coord_name2 = "MEK4600_G3_21_17_02/2021-02-17_coordinationphoto_C001H001S0001000001.bmp";
-coord_name3 = "MEK4600_G3_21_24_02/2021-02-24_coordinationphoto_C001H001S0001000001.bmp";
+coord_name3 = "MEK4600_G3_21_24_02/2021-02-24_coordphoto_C001H001S0001000001.bmp";
 
 height_from_surface = [0.005 0.00029 0.0031]; %the height from the free surface to the top coordinate dots
 
@@ -98,8 +98,9 @@ hold on
 plot(pixel(:,1), pixel(:,2), 'rx')
 plot(pixel3(:,1), pixel3(:,2), 'yx')
 
-Define matching reference points in world coordinate
-x_positions = (floor(x_points/2):-1:-ceil(x_points/2)-1)*distance_between_points;
+%Define matching reference points in world coordinate
+distance_between_points = 0.01;
+x_positions = (floor(x_points/2):-1:-ceil(x_points/2)+1)*distance_between_points;
 y_positions = (-y_points+1:1:0)*distance_between_points-height_from_surface(3);
 
 [wx,wy] = ndgrid(x_positions, y_positions);

@@ -6,6 +6,7 @@ load params.mat params
 %load parameters for analytical solution
 p = params(run_number);
 a = p('a');
+a_std = p('std_a');
 k = p('k');
 omega = p('omega');
 %h = p('h');
@@ -46,7 +47,23 @@ for i=1:M
     V_norm_mean(i) = s/n;
 end
 
+%calculate the standard deviation
+V_norm_std = zeros(M,1)*NaN;
+for i=1:M
+    n = 0;
+    s = 0;
+    for j=1:N
+        if idx(i,j)==1
+            n = n + 1;
+            s = (V_norm_mean(i)-V_norm(i,j)).^2;
+        end
+    end 
+    V_norm_std(i) = s.^.5/n;
+end
+
+
 alpha = omega/(a*g*k)*V_norm_mean;
+alpha_std = omega/(a*g*k)*V_norm_std;
 alpha_theoretical = alpha_analytical(y_to_crest);
 if create_plot
     figure

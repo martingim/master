@@ -11,7 +11,7 @@ n_waves = 3;%number of wave image pairs to use per run
 close all
 
 %% Perform PIV
-force_PIV = false; %true: Force recalculating the PIV or 
+force_PIV = true; %true: Force recalculating the PIV or 
 %                   false:just PIV on the ones that 
 %                         aren't saved in velocities.mat
 
@@ -45,6 +45,7 @@ for run_number=1:n_runs
 end
 close all
 
+
 %% Quiver plot
 run_number = 8;
 pair_number = 1;
@@ -53,10 +54,13 @@ quiver_plot(run_number, pair_number, max_arrows)
 
 
 %% plot velocity under crest
-run_number = 3;
+run_number = 4;
 pair_number = 2;
 plot_velocity_under_crest(run_number, pair_number);
-
+load basilisk_velocity_profile.mat
+a = p('a');
+omega = p('omega5');
+plot(U(:,1)/a/omega,X(:,2)/h)
 %% Plot Alpha for one wave 
 run_number = 8;
 pair_number = 3;
@@ -103,6 +107,7 @@ end
 
 %%
 close all
+number_of_runs = 15;
 for run_number=1:number_of_runs
     for pair_number=1:n_waves
         compare_stokes_5th_velocity_profile(run_number, pair_number)

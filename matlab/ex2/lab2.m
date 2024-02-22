@@ -6,12 +6,13 @@ cd(current_path)
 image_names
 coord_config
 h = 0.33; %heightof the water surface at rest
+water_depth = 0.53;
 n_runs = 15;%number of runs in the wave tank
 n_waves = 3;%number of wave image pairs to use per run
 close all
 
 %% Perform PIV
-force_PIV = true; %true: Force recalculating the PIV or 
+force_PIV = false; %true: Force recalculating the PIV or 
 %                   false:just PIV on the ones that 
 %                         aren't saved in velocities.mat
 

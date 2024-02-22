@@ -8,6 +8,10 @@ cd(current_path)
 a = 0.0205;     %measured amplitude of the wave
 omega = 8.95;   %frequency of the waves
 h = 0.6;        %the water level in the tank
+water_depth = 0.6; %the water level in the tank at rest
+frequency = [omega/(2*pi)];
+time_between_frames = [1/60]; %%%%%%change just a guess
+
 %the paths to the images on the same format as my previous lab excerise
 
 image_name = string(zeros(1,2));
@@ -48,3 +52,5 @@ y_positions = (-n_points_y+1:1:0)*distance_between_points-top_point_distance_fro
 world = [wx(:) wy(:)];
 [tform1, err, env] = createcoordsystem(pixel, world, 'cubic');
 
+%% perform PIV
+perform_PIV(1,1)

@@ -12,15 +12,12 @@ mask1_name = image_name(run_number, pair_number*2-1) + ".mask.mat";
 mask2_name = image_name(run_number, pair_number*2) + ".mask.mat";
 
 
-height = 0.33;
+height = water_depth;
 f = frequency(run_number);
 [omega,T,k,LAMBDA,CP,CG]=wparam(f,height);
 
 %a = surface_height(run_number); % run the surface height script to find the amplitude
-dt = 1/60;     %based on the framerate of the videos
-if run_number ==1
-    dt = 1/120;
-end
+dt = time_between_frames(run_number); %the time elapsed between the pictures
 
 g = 9.81;
 t = 0;

@@ -1,4 +1,4 @@
-function  [sigma,T,k,lambda,Cp,Cg]=wparam(f,H)
+function  [omega,T,k,lambda,Cp,Cg]=wparam(f,H)
 %[SIGMA,T,K,LAMBDA,CP,CG]=WPARAM(F,H)
 % This function calculates different wave parameters using the 
 % Second order dispersion relation (sigma=omega.^2/(g*k) and sigma = tanh(k*H)) given the 

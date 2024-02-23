@@ -9,7 +9,7 @@ n_waves = 3;%number of wave image pairs to use per run
 close all
 
 %% Perform PIV
-force_PIV = false; %true: Force recalculating the PIV or 
+force_PIV = true; %true: Force recalculating the PIV or 
 %                   false:just PIV on the ones that 
 %                         aren't saved in velocities.mat
 
@@ -39,7 +39,7 @@ end
 n_runs = 15;
 for run_number=1:n_runs
     disp(run_number)
-    surface_height(run_number, image_paramsz);
+    surface_height(run_number, image_params);
 end
 close all
 
@@ -52,8 +52,8 @@ quiver_plot(run_number, pair_number, max_arrows)
 
 
 %% plot velocity under crest
-run_number = 3;
-pair_number = 2;
+run_number = 15;
+pair_number = 3;
 plot_velocity_under_crest(run_number, pair_number, image_params);
 %load basilisk_velocity_profile.mat
 %a = p('a');

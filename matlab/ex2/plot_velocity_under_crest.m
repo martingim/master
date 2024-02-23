@@ -4,7 +4,7 @@ function [y_scaled, u_crest_scaled] = plot_velocity_under_crest(run_number, pair
 %% y_scaled = y/water_depth
 %% u_crest_scaled = u/(a*omega)
 
-plot_crest_finding = false;
+plot_crest_finding = true;
 
 
 %% load data and parameters
@@ -89,7 +89,7 @@ plot(1/(a*omega)*u(y_analytical_scaled*0, yw_analytical, a), y_analytical_scaled
 
 
 %plot calculated velocity
-plot(u_crest_scaled, y_scaled, 'x')
+plot(abs(u_crest_scaled), y_scaled, 'x')
 
 
 legend('one standard deviation in the amplitude', 'analytical solution', 'experimental','Location','southeast')

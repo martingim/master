@@ -4,19 +4,24 @@ cd '/home/martin/Documents/master/matlab/HydrolabPIV';
 setup_hlpiv
 cd(current_path)
 
+run_number = 16;
 %parameters from the article
 a = 0.0205;     %measured amplitude of the wave
 omega = 8.95;   %frequency of the waves
 h = 0.6;        %the water level in the tank
-water_depth = [0.6]; %the water level in the tank at rest
-frequency = [omega/(2*pi)];
-time_between_frames = [0.012];
+water_depth = zeros(16,1);
+frequency = zeros(16,1);
+time_between_frames = zeros(16,1);
+tform = [];
+water_depth(run_number) = 0.6; %the water level in the tank at rest
+frequency(run_number) = omega/(2*pi);
+time_between_frames(run_number) = 0.012;
 
 %the paths to the images on the same format as my previous lab excerise
 
-image_name = string(zeros(1,2));
-image_name(1,1) = 'Jensen_images_2001/mpim1b.bmp';
-image_name(1,2) = 'Jensen_images_2001/mpim1c.bmp';
+image_name = string(zeros(16,2));
+image_name(run_number,1) = 'Jensen_images_2001/mpim1b.bmp';
+image_name(run_number,2) = 'Jensen_images_2001/mpim1c.bmp';
 coord_name = 'Jensen_images_2001/mpwoco.bmp';
 %% create coord config for the lab
 
@@ -49,15 +54,15 @@ distance_between_points = 0.05;
 x_positions = (floor(n_points_x/2):-1:-ceil(n_points_x/2)+1)*distance_between_points;
 y_positions = (-n_points_y+1:1:0)*distance_between_points-top_point_distance_from_surface;
 [wx,wy] = ndgrid(x_positions,y_positions);
-world = [wx(:) wy(:)]
+world = [wx(:) wy(:)]; 
 [tform1, err, env] = createcoordsystem(pixel, world, 'linear');
+tform = [tform1 tform1 tform1 tform1];
 
-
-%show the initial dot guess and refined positions
-imshow(coord)
-hold on
-plot(pixel_guess(:,1), pixel_guess(:,2), 'rx')
-plot(pixel(:,1), pixel(:,2), 'yx')
+% %show the initial dot guess and refined positions
+% imshow(coord)
+% hold on
+% plot(pixel_guess(:,1), pixel_guess(:,2), 'rx')
+% plot(pixel(:,1), pixel(:,2), 'yx')
 
 
 %save all the parameters to image_params container
@@ -66,23 +71,23 @@ image_params('image_name') = image_name;
 image_params('frequency') = frequency;
 image_params('time_between_frames') = time_between_frames;
 image_params('water_depth') = water_depth;
-image_params('tform') = [tform1]; 
+image_params('tform') = tform; 
 
 %% perform PIV
-perform_PIV(1,1,image_params);
+perform_PIV(run_number,1,image_params);
 
 %% save some constants to params
 load params.mat params
-p = params(1);
+p = params(run_number);
 p('a') = a;
 p('std_a') = 0.001;
 p('water_depth') = water_depth;
-params(1) = p;
+params(run_number) = p;
 save('params.mat', 'params')
 
 %% plots
-plot_velocity_under_crest(1,1,image_params);
-
+plot_velocity_under_crest(run_number,1,image_params);
+plot_alpha(run_number, 1, image_params, true)
 
 
 

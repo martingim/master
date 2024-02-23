@@ -29,7 +29,7 @@ pixel = xc(idx,:);
 [wx,wy] = ndgrid((13:-1:-13)*0.01,(-21:1:0)*0.01-height_from_surface(1));
 %[wx,wy] = ndgrid((1:-1:-1)*0.01,(-1:1:1)*0.01-height_from_surface);
 world = [wx(:) wy(:)];
-[tform1, err, env] = createcoordsystem(pixel, world, 'cubic');
+[tform1, err, env] = createcoordsystem(pixel, world, 'linear');
 % %show coord image and chosen poinbts
 % imshow(coord)
 % hold on 
@@ -47,7 +47,7 @@ x_points = 25;
 y_points = 22;
 [x_pos, y_pos] = ndgrid(round(x1:(x0-x1)/(x_points-1):x0), round(y1:(y0-y1)/(y_points-1):y0));
 pixel = [reshape(x_pos, [], 1) reshape(y_pos, [], 1)];
-
+pixel
 %refine pixel positions
 c = graythresh(coord2);
 bw = im2bw(coord2, 0.9);
@@ -67,7 +67,7 @@ pixel2 = xc(idx,:);
 [wx,wy] = ndgrid((12:-1:-12)*0.01,(-21:1:0)*0.01-height_from_surface(2));
 %[wx,wy] = ndgrid((1:-1:-1)*0.01,(-1:1:1)*0.01-height_from_surface);
 world = [wx(:) wy(:)];
-[tform2, err, env] = createcoordsystem(pixel2, world, 'cubic');
+[tform2, err, env] = createcoordsystem(pixel2, world, 'linear');
 
 
 % %% coordinate system from third lab day
@@ -105,7 +105,7 @@ y_positions = (-y_points+1:1:0)*distance_between_points-height_from_surface(3);
 
 [wx,wy] = ndgrid(x_positions, y_positions);
 world = [wx(:) wy(:)];
-[tform3, err, env] = createcoordsystem(pixel3, world, 'cubic');
+[tform3, err, env] = createcoordsystem(pixel3, world, 'linear');
 
 
 %%

@@ -19,14 +19,15 @@ account using the "reduced gravity approach". */
 /**
 The primary parameters are the wave steepness $ak$ and the Reynolds
 number. */
-double ak = 0.35;
-double RE = 40000.;
+double ak = 0.357;
+double RE = 45491.;
 int LEVEL = 5;
-int maxlevel = 9;
+int maxlevel = 8;
 double Tend = 20;
-double lx = 20;
+double lx = 1;
 double Ly = 1.;
 double water_depth = 0.6;
+double k = 7.14;
 /**
 The error on the components of the velocity field used for adaptive
 refinement. */
@@ -42,10 +43,10 @@ The density and viscosity ratios are those of air and water. */
 The wave number, fluid depth and acceleration of gravity are set to
 these values. *T0* is the wave period. */
 
-#define k_  (2.*pi)
+#define k_  k
 #define h_   0.6
-#define g_   1.
-#define T0  (k_/sqrt(g_*k_))
+#define g_   9.81
+#define T0  0.7071
 
 
 /**
@@ -74,7 +75,7 @@ int main (int argc, char * argv[])
   L0 = lx;
   move_origin();
 
-  //periodic (right);
+  periodic (right);
   /**
   Here we set the densities and viscosities corresponding to the
   parameters above. */
@@ -105,6 +106,7 @@ using the third-order Stokes wave solution. */
 
 event init (i = 0)
 {
+  lx = 2*pi/k_;
 
   if (!restore ("restart")) {
 

@@ -4,7 +4,7 @@ function [y_scaled, u_crest_scaled] = plot_velocity_under_crest(run_number, pair
 %% y_scaled = y/water_depth
 %% u_crest_scaled = u/(a*omega)
 
-plot_crest_finding = true;
+plot_crest_finding = false;
 
 
 %% load data and parameters
@@ -13,7 +13,7 @@ load params.mat params
 
 %load parameters for plotting analytical solutions
 water_depth = image_params('water_depth');
-water_depth = water_depth(run_number);
+water_depth = water_depth(run_number)
 
 p = params(run_number);
 a = p('a');
@@ -56,12 +56,16 @@ if plot_crest_finding
 end
 
 %% Velocity profile
-%%create mask for world bassed on the three columns closest to the crest 
+%%create mask for world based on the three columns closest to the crest 
 % coordinates and scale y
-u_crest = Uw(:,crest_idx-1:crest_idx+1);
-u_crest = mean(u_crest, 2);
-u_crest = u_crest(idx(:,crest_idx)&idx(:,crest_idx-1)&idx(:,crest_idx+1));
-crest_mask = idx(:,crest_idx)&idx(:,crest_idx-1)&idx(:,crest_idx+1);
+% u_crest = Uw(:,crest_idx-1:crest_idx+1);
+% u_crest = mean(u_crest, 2);
+% u_crest = u_crest(idx(:,crest_idx)&idx(:,crest_idx-1)&idx(:,crest_idx+1));
+% crest_mask = idx(:,crest_idx)&idx(:,crest_idx-1)&idx(:,crest_idx+1);
+u_crest = Uw(:,crest_idx);
+u_crest = u_crest(idx(:,crest_idx)&true);
+crest_mask = idx(:,crest_idx)&true;
+
 u_crest_scaled = 1/(a*omega)*u_crest;
 y_scaled = 1/water_depth*yw(crest_mask);
 

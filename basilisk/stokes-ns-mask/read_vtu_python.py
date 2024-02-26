@@ -5,8 +5,8 @@ import numpy as np
 import scipy
 import glob
 
-filenames = glob.glob('vtu/ascii*/*.vtu')
-
+filenames = glob.glob('vtu/ascii*/TIME*/*.vtu')
+filenames.sort()
 """
 # read all the files 
 vtu = {}
@@ -18,7 +18,7 @@ for filename in filenames:
 """
 
 
-mesh = read(filenames[17])
+mesh = read(filenames[0])
 cell_points = mesh.cells[0].data    
 points = mesh.points
 
@@ -29,7 +29,8 @@ def get_cell_centers():
     
 
 cellData = mesh.cell_data
-mask = cellData['f'][0]>0.5
+f = cellData['f'][0]
+mask = f>0.5
 
 Ux = cellData['u.x']
 U = Ux[0][:,0]
@@ -45,20 +46,12 @@ plt.show()
 
 
 ### FIND THE WAVE CRESTS ###
-#X0 that runs from min to max x value for finding wave crests
-X0 = np.linspace(min(X), max(X), 10000)
-#Y0 at a level under the wave troughs 
-Y0 = -max(Y)*1.2*np.ones_like(X0)
-interpolation_points = np.stack([X0, Y0], axis=1)
-interpolated_U = scipy.interpolate.griddata(center_points, center_U, interpolation_points) 
-#find the local maxima in ux to locate the wave crests
-x_ind = scipy.signal.argrelextrema(interpolated_U[:,0], np.greater) 
-print(x_ind)
+#multiply the y coordinates with the water fraction to find the highest point of the wave
+Y_F = Y*f
+ind = Y_F.argmax()
 
-
-
-Y0 = np.linspace(-0.53, 0.0093, 1000)
-X0 = -0.0755*np.ones_like(Y0)
+Y0 = np.linspace(min(Y), max(Y[mask]), 1000)
+X0 = X[ind]*np.ones_like(Y0)
 interpolation_points = np.stack([X0, Y0], axis=1)
 
 interpolated_U = scipy.interpolate.griddata(center_points, center_U, interpolation_points) 

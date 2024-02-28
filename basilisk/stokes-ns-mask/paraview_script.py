@@ -1,7 +1,7 @@
-# trace generated using paraview version 5.10.0-RC1
+# trace generated using paraview version 5.12.0-RC3
 #import paraview
 #paraview.compatibility.major = 5
-#paraview.compatibility.minor = 10
+#paraview.compatibility.minor = 12
 
 # to automatically get the filenames
 import glob
@@ -21,19 +21,15 @@ tIME00.CellArrayStatus = ['f', 'p', 'u.x']
 
 # Properties modified on tIME00
 tIME00.TimeArray = 'None'
-
 vTU1 = CreateExtractor('VTU', tIME00, registrationName='VTU1')
 # trace defaults for the extractor.
 vTU1.Trigger = 'TimeStep'
 
-# init the 'VTU' selected for 'Writer'
-vTU1.Writer.FileName = 'TIME-00*_{timestep:06d}.pvtu'
-
 # Properties modified on vTU1.Writer
-vTU1.Writer.FileName = 'ascii_{timestep:06d}.pvtu'
+vTU1.Writer.FileName = '{timestep:06d}.pvtu'
 vTU1.Writer.DataMode = 'Ascii'
-
+vTU1.Writer.UseSubdirectory = 0
 
 # save extracts
-SaveExtracts(ExtractsOutputDirectory='/home/martin/Documents/master/basilisk/stokes-ns-mask/vtu',
+SaveExtracts(ExtractsOutputDirectory='/home/martin/Documents/master/basilisk/stokes-ns-mask/vtu/ascii',
     GenerateCinemaSpecification=0)

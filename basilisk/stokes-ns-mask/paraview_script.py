@@ -13,7 +13,7 @@ paraview.simple._DisableFirstRenderCameraReset()
 
 
 Filenames = [path.abspath(name) for name in glob.glob('vtu/TIME*.vtu')]
-
+Filenames.sort()
 
 # create a new 'XML Unstructured Grid Reader'
 tIME00 = XMLUnstructuredGridReader(registrationName='TIME-00*', FileName=Filenames)

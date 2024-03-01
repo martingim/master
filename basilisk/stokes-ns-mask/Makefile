@@ -14,4 +14,5 @@ clean:
 	rm *.o ; \
 	rm stokes-ns;\
 	rm vtk/*.vtk;\
-	rm vtu/*.vtu;
+	rm vtu/*.vtu;\
+	rm vtu/ascii/*;

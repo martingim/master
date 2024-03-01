@@ -87,13 +87,20 @@ save('params.mat', 'params')
 
 %% plots
 plot_velocity_under_crest(run_number,1,image_params);
-plot_alpha(run_number, 1, image_params, true)
+%plot_alpha(run_number, 1, image_params, true)
 
+%% plot basilisk results
+load basilisk_velocity_profile.mat
+X = timestep_0.X;
+U = timestep_0.U; 
+mask = timestep_0.mask;
 
-
-
-
-
+%TODO find crest 
+crest_idx = 50;
+u = U(:,crest_idx,1);
+y = X(:,crest_idx,2);
+mask = mask(:,crest_idx,1);
+plot(u(mask)/a/omega, y(mask)/h)
 
 
 

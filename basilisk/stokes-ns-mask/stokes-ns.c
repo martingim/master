@@ -19,21 +19,24 @@ account using the "reduced gravity approach". */
 /**
 The primary parameters are the wave steepness $ak$ and the Reynolds
 number. */
-double ak = 0.357;
+double ak = 0.16;
 double RE = 45491.;
 int LEVEL = 5;
 int maxlevel = 8;
-double Tend = 20;
-double lx = 1;
-double Ly = 1.;
+double Tend = 5;
+double Ly = 1.; //the height of the waveflume
 double water_depth = 0.6;
-double k = 7.14;
+double k = 7.95;
+double lx = 0.7903377744879982*2; //must be larger than Ly to get the periodic boundary right
+
 /**
 The error on the components of the velocity field used for adaptive
 refinement. */
 
 double uemax = 0.005;
 
+/*the error in the VOF field*/
+double femax = 0.0001;
 /**
 The density and viscosity ratios are those of air and water. */
 #define RATIO (1./850.)
@@ -46,17 +49,29 @@ these values. *T0* is the wave period. */
 #define k_  k
 #define h_   0.6
 #define g_   9.81
-#define T0  0.7071
+#define T0  0.7115297011824904
 
 
 /**
 The program takes optional arguments which are the level of
 refinement, steepness and Reynolds numbers. */
 void move_origin(){
+  if (lx>Ly){  
+  size(lx);
+  }
+  else{
+  size(Ly);
+  }
   origin (-lx/2., -water_depth);
 }
+
 void mask_domain(){
-  mask(y > Ly-water_depth ? top : none);
+  if (lx>Ly){  
+    mask(y > Ly-water_depth ? top : none);
+  }
+  else{
+    mask(x >= lx/2. ? right : none);
+  }
 }
 
 int main (int argc, char * argv[])
@@ -74,16 +89,13 @@ int main (int argc, char * argv[])
 
   L0 = lx;
   move_origin();
-
   periodic (right);
-  /**
-  Here we set the densities and viscosities corresponding to the
-  parameters above. */
   
-  rho1 = 1.;
-  rho2 = RATIO;
-  mu1 = 1.0/RE; //using wavelength as length scale
-  mu2 = 1.0/RE*MURATIO;
+  
+  rho1 = 1025;
+  rho2 = 1.225;
+  mu1 = 8.9e-4; 
+  mu2 = 17.4e-6;
   G.y = -g_;
 
   /**
@@ -106,7 +118,7 @@ using the third-order Stokes wave solution. */
 
 event init (i = 0)
 {
-  lx = 2*pi/k_;
+
 
   if (!restore ("restart")) {
 
@@ -130,8 +142,18 @@ event init (i = 0)
     not refine the mesh anymore. */
 
     while (adapt_wavelet({f,u},
-			  (double[]){0.01,uemax,uemax,uemax}, maxlevel, LEVEL).nf);
+			  (double[]){femax,uemax,uemax,uemax}, maxlevel, LEVEL).nf);
   }
+  
+}
+
+/**
+## Mesh adaptation. We adapt the mesh according to the error on volume fraction
+and velocity. */
+
+
+event adapt (i++) {
+  adapt_wavelet ({f, u}, (double[]){femax,uemax,uemax,uemax}, maxlevel, LEVEL);
 }
 
 
@@ -162,15 +184,6 @@ event vtu(t+=0.2;t<Tend){
   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
 }
 
-
-/**
-## Mesh adaptation. We adapt the mesh according to the error on volume fraction
-and velocity. */
-
-
-event adapt (i++) {
-  adapt_wavelet ({f, u}, (double[]){0.01,uemax,uemax,uemax}, maxlevel, LEVEL);
-}
 
 
 

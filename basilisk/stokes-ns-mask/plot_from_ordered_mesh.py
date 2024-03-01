@@ -12,7 +12,7 @@ cell_points = mesh.cells[0]
 
 points = mesh.points
 pointData = mesh.point_data
-mask = pointData['f']<2
+mask = pointData['f']>0.5
 X = points[:,0]
 Y = points[:,1]
 U = pointData['u.x']

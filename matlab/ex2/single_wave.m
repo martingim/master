@@ -8,6 +8,7 @@ run_number = 16;
 %parameters from the article
 a = 0.0205;     %measured amplitude of the wave
 omega = 8.95;   %frequency of the waves
+k = 7.95;       %wavenumber
 h = 0.6;        %the water level in the tank
 water_depth = zeros(16,1);
 frequency = zeros(16,1);
@@ -85,41 +86,17 @@ p('water_depth') = water_depth;
 params(run_number) = p;
 save('params.mat', 'params')
 
-%% plots
+%% plot velocity under crest
+timestep = 1;
 plot_velocity_under_crest(run_number,1,image_params);
-%plot_alpha(run_number, 1, image_params, true)
+%compare with basilisk results
 
-%% plot basilisk results
-load basilisk_velocity_profile.mat
-X = timestep_0.X;
-U = timestep_0.U; 
-mask = timestep_0.mask;
-
-%TODO find crest 
-crest_idx = 50;
-u = U(:,crest_idx,1);
-y = X(:,crest_idx,2);
-mask = mask(:,crest_idx,1);
-plot(u(mask)/a/omega, y(mask)/h)
+plot_basilisk_velocity_profile(timestep, a, omega, h)
 
 
+%% plot alpha
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+plot_alpha(run_number, 1, image_params, true);
+%compare with basilisk results
+plot_basilisk_alpha(timestep, a, k, omega, h);
 

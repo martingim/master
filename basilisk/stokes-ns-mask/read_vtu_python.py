@@ -5,15 +5,15 @@ import numpy as np
 import scipy
 import glob
 
-matlab_filename  = "basilisk_velocity_profile.mat"
-matlab_dict  = {}
+save_dir  = "/home/martin/Documents/master/matlab/ex2/basilisk_results/"
 
 
 nx = 100 #number of points to save in x direction in the matlab matrix
-ny = 100 # y dir
+ny = 1000 # y dir
 filenames = glob.glob('vtu/ascii/*.vtu')
+assert(len(filenames)>0)
 filenames.sort()
- 
+
 i = 0
 for filename in filenames:
     print('reading file :', filename)
@@ -29,48 +29,22 @@ for filename in filenames:
     # get the data for the center of the cells
     cellData = mesh.cell_data
     f = cellData['f'][0]
-    mask = f>0.5
+    mask = f>0.9
 
     Ux = cellData['u.x']
     U = Ux[0][:,0]
     V = Ux[0][:,1]
     center_U = np.stack([U,V], axis=1)
     x_interpolation_points = np.linspace(min(X), max(X), nx)
-    y_interpolation_points = np.linspace(min(Y), max(Y), ny)
+    y_interpolation_points = np.linspace(max(Y), min(Y), ny)
     x,y= np.meshgrid(x_interpolation_points, y_interpolation_points)
     interpolation_points = np.stack([x,y], axis=2)
     interpolated_U = scipy.interpolate.griddata(center_points, center_U, interpolation_points)
     interpolated_f = scipy.interpolate.griddata(center_points, f, interpolation_points)
-    res = {}
-    res['U'] = interpolated_U
-    res['X'] = interpolation_points
-    res['mask'] = interpolated_f>0.5 
-    matlab_dict[f"timestep_{i}"] = res
+    matlab_dict = {}
+    matlab_dict['U'] = interpolated_U
+    matlab_dict['X'] = interpolation_points
+    matlab_dict['mask'] = interpolated_f>0.5
+    
+    scipy.io.savemat(save_dir + f"timestep_{i}.mat", matlab_dict)
     i += 1
-scipy.io.savemat(matlab_filename, matlab_dict)
-
-"""
-### FIND THE WAVE CRESTS ###
-#multiply the y coordinates with the water fraction to find the highest point of the wave
-Y_F = Y*f
-ind = Y_F.argmax()
-
-Y0 = np.linspace(min(Y), max(Y[mask]), 1000)
-X0 = X[ind]*np.ones_like(Y0)
-interpolation_points = np.stack([X0, Y0], axis=1)
-
-interpolated_U = scipy.interpolate.griddata(center_points, center_U, interpolation_points) 
-
-plt.plot(interpolated_U[:,0], interpolation_points[:,1])
-plt.xlabel("u[m/s]")
-plt.ylabel("y")
-plt.show()
-i += 1
-
-matlab_dict['X'] = interpolation_points
-matlab_dict['U'] = interpolated_U
-
-
-plt.quiver(X[mask], Y[mask], U[mask], V[mask])
-plt.show()
-"""

@@ -92,11 +92,15 @@ plot_velocity_under_crest(run_number,1,image_params);
 %compare with basilisk results
 
 plot_basilisk_velocity_profile(timestep, a, omega, h)
-
+timestep = 24;
+plot_basilisk_velocity_profile(timestep, a, omega, h)
 
 %% plot alpha
 
 plot_alpha(run_number, 1, image_params, true);
 %compare with basilisk results
+timestep = 1;
 plot_basilisk_alpha(timestep, a, k, omega, h);
-
+timestep = 24;
+plot_basilisk_alpha(timestep, a, k, omega, h);
+basilisk_multilayer_alpha(a, k, omega, h);

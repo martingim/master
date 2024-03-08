@@ -1,14 +1,15 @@
-change the masking in stokes-ns-mask to scale the simulation length to one wavelength
-	which will hopefully get the coordinates right in paraview
+MATLAB
+	add higher order stokes solutions to the plots 
+	for velocity and alpha
 
-Test if Paraview trace works at home
-	check paraview version
-	check python paraview version 
 
-keep trying to get multilayer solver to work in 2d
- 
+	use sensor offset in surface height script
+	to add more sensors
+BASILISK
+	compare mesh refinement results
+	use the wavemaker theory on a larger domain
+
+
+
 Surface height sensors
     check to see if I can find the distance between the sensors in overleaf or lab journal
-
-    use sensor offset in surface height script
-

@@ -71,7 +71,7 @@ if create_plot
     plot(alpha, y_at_crest, 'x')
     plot(alpha_theoretical, y_below_crest_scaled)
     legend('measured', 'theoretical')
-    title('Alpha plot')
+    title('horizontal mean of Alpha over the domain')
     xlabel('$\alpha=\frac{\omega}{agk}(u^2+v^2)^{\frac{1}{2}}$', 'interpreter', 'latex', 'FontSize', 20)
     ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 20, 'rotation', 0)
 end

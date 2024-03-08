@@ -10,11 +10,16 @@ default: irregular ;
 irregular: irregular.c
 	CC99='gcc -std=c99' qcc irregular.c -o irregular -L$(CFD_LIBS) -lCFDwavemaker_swd_openmp -lm -L. -L$(GL_LIBS) -lglutils -lfb_osmesa -lOSMesa -lGLU -ldl -lpthread -Wall -O2 -lstdc++ -L$(PPR_LIBS) -lppr -lgfortran -I$(CFD_LIBS)
 
+bar: bar.c
+	CC99='gcc -std=c99' qcc bar.c -o bar -L$(CFD_LIBS) -lCFDwavemaker_swd_openmp -lm -L. -L$(GL_LIBS) -lglutils -lfb_osmesa -lOSMesa -lGLU -ldl -lpthread -Wall -O2 -lstdc++ -L$(PPR_LIBS) -lppr -lgfortran -I$(CFD_LIBS)
+
+
 clean:
 	rm *.o ; \
 	rm irregular;\
+	rm bar;\
 	rm vtk/*.vtk;\
 	rm RES_VTK/*;\
 	rm vtu/*;\
-	rm vtu3d/*;
-	
+	rm vtu3d/*;\
+	rm *.csv;	

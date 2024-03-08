@@ -4,7 +4,7 @@ function [] = basilisk_multilayer_alpha(a, k, omega, h)
 times = [times(1) times(end)]; %only plot first and last timestep
 g = 9.81;
 N = 1000;
-for i = 1:size(times,1)
+for i = 1:numel(times)
     t = times(i); 
     X = squeeze(res(i,1,:,:));
     Y = squeeze(res(i,2,:,:));
@@ -21,6 +21,6 @@ for i = 1:size(times,1)
         mean_alpha(N-height+1:end, i) = interp1(Y(:,i),alpha(:,i),y(N-height+1:end));
     end
     mean_alpha = mean(mean_alpha, 2, 'omitnan');
-    plot(mean_alpha, y/h, 'DisplayName', sprintf("multilayer at time t=%.1f", t))
+    plot(mean_alpha, y/h,'--', 'DisplayName', sprintf("multilayer at time t=%.1f", t))
 end
 

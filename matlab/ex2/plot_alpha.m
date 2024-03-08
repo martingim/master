@@ -72,7 +72,7 @@ if create_plot
     plot(alpha_theoretical, y_below_crest_scaled)
     legend('measured', 'theoretical')
     title('Alpha plot')
-    xlabel('$\alpha$', 'interpreter', 'latex', 'FontSize', 20)
+    xlabel('$\alpha=\frac{\omega}{agk}(u^2+v^2)^{\frac{1}{2}}$', 'interpreter', 'latex', 'FontSize', 20)
     ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 20, 'rotation', 0)
 end
 

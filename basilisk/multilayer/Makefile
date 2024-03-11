@@ -5,10 +5,10 @@ CFD_LIBS=/home/martin/Documents/master/basilisk/src
 
 .PHONY: default clean
 
-default: irregular ;
+default: multilayer ;
 
-irregular: irregular.c
-	CC99='gcc -std=c99' qcc irregular.c -o irregular -L$(CFD_LIBS) -lCFDwavemaker_swd_openmp -lm -L. -L$(GL_LIBS) -lglutils -lfb_osmesa -lOSMesa -lGLU -ldl -lpthread -Wall -O2 -lstdc++ -L$(PPR_LIBS) -lppr -lgfortran -I$(CFD_LIBS)
+multilayer: multilayer.c
+	CC99='gcc -std=c99' qcc multilayer.c -o multilayer -L$(CFD_LIBS) -lCFDwavemaker_swd_openmp -lm -L. -L$(GL_LIBS) -lglutils -lfb_osmesa -lOSMesa -lGLU -ldl -lpthread -Wall -O2 -lstdc++ -L$(PPR_LIBS) -lppr -lgfortran -I$(CFD_LIBS)
 
 bar: bar.c
 	CC99='gcc -std=c99' qcc bar.c -o bar -L$(CFD_LIBS) -lCFDwavemaker_swd_openmp -lm -L. -L$(GL_LIBS) -lglutils -lfb_osmesa -lOSMesa -lGLU -ldl -lpthread -Wall -O2 -lstdc++ -L$(PPR_LIBS) -lppr -lgfortran -I$(CFD_LIBS)
@@ -16,10 +16,4 @@ bar: bar.c
 
 clean:
 	rm *.o ; \
-	rm irregular;\
-	rm bar;\
-	rm vtk/*.vtk;\
-	rm RES_VTK/*;\
-	rm vtu/*;\
-	rm vtu3d/*;\
-	rm *.csv;	
+	rm multilayer;\

@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 event save_velocity(t += Tend/10.; t<=Tend)
 {
   char filename[200];
-  sprintf(filename, "/home/martin/Documents/master/matlab/ex2/basilisk_results/velocities_nx%d_nl%d_timestep_%d.csv",1<<LEVEL, nl, i);
+  sprintf(filename, "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/velocities_nx%d_nl%d_timestep_%d.csv",1<<LEVEL, nl, i);
   fprintf(stderr, "saving results to:%s\n", filename);
   FILE *fp = fopen(filename, "w"); //if at the first timestep overwrite the previous file, can later add run parameters here
   fprintf(fp, "\"Time\",\"layer\",\"Points:0\",\"Points:1\",\"Points:2\",\"u.x\",\"u.z\",\"eta\"\n");

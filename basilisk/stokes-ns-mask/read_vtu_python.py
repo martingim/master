@@ -5,7 +5,7 @@ import numpy as np
 import scipy
 import glob
 
-save_dir  = "/home/martin/Documents/master/matlab/ex2/basilisk_results/"
+save_dir  = "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/"
 
 
 nx = 100 #number of points to save in x direction in the matlab matrix

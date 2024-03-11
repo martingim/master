@@ -103,4 +103,7 @@ timestep = 1;
 plot_basilisk_alpha(timestep, a, k, omega, h);
 timestep = 24;
 plot_basilisk_alpha(timestep, a, k, omega, h);
-basilisk_multilayer_alpha(a, k, omega, h);
+
+basilisk_multilayer_alpha(a, k, omega, h, 128, 20);
+
+% basilisk_multilayer_alpha(a, k, omega, h, 'basilisk_results/velocities_nx64_nl100.csv');

@@ -25,14 +25,15 @@ This test case is discussed in [Popinet
 #define ML 1
 
 double ak = 0.16;
-int LEVEL = 6;
 double Tend = 10;
 double Lx = 1.5806755489759965;
 double Ly = 1;
 double k = 7.95;
 double g = 9.81;
 
-
+int LEVEL = 6;
+#define nl_ 10
+#define rmin 0.5
 #define k_ k
 #define h_ 0.6
 #define g_ g
@@ -58,11 +59,9 @@ int main() {
   N = 1<<LEVEL;
   L0 = Lx;
   G = g;
-#if ML
-  nl = 20;  
+  nl = nl_;  
   breaking = 0.1;
   CFL_H = 0.5;
-#endif
   run();
 }
 
@@ -76,14 +75,14 @@ period of 2.02 seconds matches that of the experiment. */
 
 event init (i = 0)
 {
-  
+  geometric_beta(rmin, true);
   /**
   set the surface of the wave */
 
   foreach() {
     zb[] = -h_;
     foreach_layer()
-      h[] = (max(- zb[], 0.)+wave(x, y))/nl;
+      h[] = (max(- zb[], 0.)+wave(x, y))*beta[point.l];
   }
   
   /*set the velocity field of the wave*/
@@ -97,38 +96,6 @@ event init (i = 0)
     }
   }
 }
-
-
-void velocity_profile()
-  {
-  char filename[40];
-  sprintf(filename, "velocities.csv");
-  FILE *fp = fopen(filename, "a");
-  foreach(){
-    double z = zb[];
-    foreach_layer(){
-      z += h[]/2;
-      fprintf(fp, "%f, %d, %f, %f, %f, %f, %f,\n", t, point.l, x, z, u.x[], w[], eta[]);
-      z += h[]/2;
-    }
-  }
-  /*
-  foreach(){
-    double z_layer = zb[];
-    double prev_h = zb[]*0;
-  }
-    
-  foreach_layer() 
-  {
-    z_layer += prev_h/2;
-    z_layer += h[]/2;
-    prev_h = h[];
-    fprintf (fp, "%f, %f, %f, %d", t, interpolate(z_layer,x), x, _layer);
-    fprintf(fp, "\n");
-  }
-  */
-  fclose(fp);
-  }
 
 
 
@@ -157,13 +124,9 @@ event profiles (t += 0.05)
   foreach (reduction(+:ke) reduction(+:gpe)) {
     double zc = zb[];
     foreach_layer() {
-#if ML      
       double norm2 = sq(w[]);
-#else
-      double norm2 = 0.;
-#endif
       foreach_dimension()
-	norm2 += sq(u.x[]);
+	      norm2 += sq(u.x[]);
       ke += norm2*h[]*dv();
       gpe += (zc + h[]/2.)*h[]*dv();
       zc += h[];
@@ -199,101 +162,34 @@ event gnuplot (t = Tend) {
   plot_profile (t, fp);
 }
 
-/**
-The location of the gauges is difficult to find in the litterature, we
-used a combination of [Yamazaki et al,
-2009](/src/references.bib#yamazaki2009) and [Dingemans,
-1994](/src/references.bib#dingemans1994). */
-
-Gauge gauges[] = {
-  {"X_0",  0},
-  {NULL}
-};
-
-
-event output (i += 2; t <= 40)
-  output_gauges (gauges, {eta});
-
-
 event save_velocity(t += 1; t<=Tend)
-  velocity_profile(); 
-//event velocity_profile(i += 2; t <= Tend)
-  //double layer_z = 0;
-  //foreach_layer() 
-  //{
-  //  layer_z += interpolate(h, 0.0);
-  //  fprintf (stderr, "%f, %d\n", layer_z, _layer);
-  //}
-  //double X_0 = 0;
-  //char filename[40];
-  //sprintf(filename, "velocity_profile_at_x_%f.txt", X_0);
-  //FILE *fp = fopen(filename, "w");
-  //double z = 0;
-  //foreach_layer()
-    //z += interpolate(h, X_0);
-    //fprintf(fp, "%f, %f, %f, %f, %f\n", t, X_0, z, u.x, u.y);
-  
-//save ordered mesh
-event save_vtk(t+=0.2;t<10){
-  char filename[40];
-  sprintf(filename, "vtk/TIME-%06g.vtk", (t*100));
-  FILE *fp = fopen(filename, "w");
-  output_vtk((scalar *) {eta}, 100, fp, true);
+{
+  char filename[200];
+  sprintf(filename, "/home/martin/Documents/master/matlab/ex2/basilisk_results/velocities_nx%d_nl%d.csv",1<<LEVEL, nl_);
+  FILE *fp;
+  if (t==0)
+    fp = fopen(filename, "w"); //if at the first timestep overwrite the previous file, can later add run parameters here
+  else
+    fp = fopen(filename, "a");
+
+  foreach(){
+    double z = zb[];
+    foreach_layer(){
+      z += h[]/2;
+      fprintf(fp, "%f, %d, %f, %f, %f, %f, %f,\n", t, point.l, x, z, u.x[], w[], eta[]);
+      z += h[]/2;
+    }
+  }
+  fclose(fp); 
 }
-// //save unordered mesh
-// event vtu(t+=0.2;t<10){
-//   char filename[40];
-//   sprintf(filename, "vtu/TIME-%06g", (t*100));
-//   output_vtu((scalar *) {eta}, (vector *) {u}, filename);
-// }
 
 
-/**
-The modelled and experimental (circles) timeseries compare quite
-well. The agreement is significantly better than that in [Yamazaki et
-al, 2009](/src/references.bib#yamazaki2009) (figure 4) in particular
-for gauge 9, but probably not as good as that in [Lannes and Marche,
-2014](/src/references.bib#lannes2014) (figure 12), who used a
-higher-order scheme, and a three-parameter optimised dispersion
-relation. Note that using the optimised dispersion relation (with
-$\alpha_d=1.153$) is necessary to obtain such an agreement.
+// gauges to compare the surface elevation
+// Gauge gauges[] = {
+//   {"X_0",  0},
+//   {NULL}
+// };
 
-~~~gnuplot Comparison of experimental and numerical timeseries
-set term svg enhanced size 640,480 font ",10"
-set xrange [33:39]
-set yrange [-2:4]
-set ytics -2,2,4
-set key top left
-set multiplot layout 4,2 scale 1.05,1.1
-set rmargin 2.
-set tmargin 0.5
-unset xtics
-# t0 is a tunable parameter
-t0 = -0.24
-plot 'WG4' u ($1+t0):($2*100.) w l lc -1 lw 2 t 'gauge 4', \
-     '../gauge-4' pt 6 lc -1 t ''
-unset ytics
-plot 'WG5' u ($1+t0):($2*100.) w l lc -1 lw 2 t 'gauge 5', \
-     '../gauge-5' pt 6 lc -1 t ''
-set ytics -2,2,6
-plot 'WG6' u ($1+t0):($2*100.) w l lc -1 lw 2 t 'gauge 6', \
-     '../gauge-6' pt 6 lc -1 t ''
-unset ytics
-plot 'WG7' u ($1+t0):($2*100.) w l lc -1 lw 2 t 'gauge 7', \
-     '../gauge-7' pt 6 lc -1 t ''
-set ytics -2,2,6
-plot 'WG8' u ($1+t0):($2*100.) w l lc -1 lw 2 t 'gauge 8', \
-     '../gauge-8' pt 6 lc -1 t ''
-unset ytics
-plot 'WG9' u ($1+t0):($2*100.) w l lc -1 lw 2 t 'gauge 9', \
-     '../gauge-9' pt 6 lc -1 t ''
-set xtics
-set ytics -2,2,6
-plot 'WG10' u ($1+t0):($2*100.) w l lc -1 lw 2 t 'gauge 10', \
-     '../gauge-10' pt 6 lc -1 t ''
-unset ytics
-plot 'WG11' u ($1+t0):($2*100.) w l lc -1 lw 2 t 'gauge 11', \
-     '../gauge-11' pt 6 lc -1 t ''
-unset multiplot
-~~~
-*/
+
+// event output (i += 2; t <= Tend)
+//   output_gauges (gauges, {eta});

@@ -21,70 +21,39 @@ This test case is discussed in [Popinet
 #include "layered/perfs.h"
 
 
-#include "vtk.h"
 #define ML 1
 
 double ak = 0.16;
-double Tend = 10;
+double Tend = 100;
 double Lx = 1.5806755489759965;
 double Ly = 1;
 double k = 7.95;
 double g = 9.81;
+int LEVEL = 7;
+double rmin = 0.5;
 
-int LEVEL = 6;
 #define nl_ 10
-#define rmin 0.5
 #define k_ k
 #define h_ 0.6
 #define g_ g
 #define T0 0.7115297011824904
 #include "test/stokes.h"
 
-void move_origin(){
-  if (Lx>Ly){  
-  size(Lx);
-  }
-  else{
-  size(Ly);
-  }
-  origin (-Lx/2., h_);
-}
-
-
-
-
-int main() {
-  move_origin();
-  periodic(right);
-  N = 1<<LEVEL;
-  L0 = Lx;
-  G = g;
-  nl = nl_;  
-  breaking = 0.1;
-  CFL_H = 0.5;
-  run();
-}
 
 /**
-We use ["radiation"
-conditions](/src/elevation.h#radiation-boundary-conditions) at the
-inlet and outlet. At the inlet (on the left), we try to impose the
-desired sinusoidal wave form. We have to tune the amplitude to obtain
-the required amplitude as measured in the experiment at gauge 4. The
-period of 2.02 seconds matches that of the experiment. */
+We use Stokes third order wave from src/test/stokes.h to initialise the surface elevation 
+and the velocity field*/
 
 event init (i = 0)
 {
-  geometric_beta(rmin, true);
-  /**
-  set the surface of the wave */
-
+  //geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
+  //set the surface of the wave
   foreach() {
     zb[] = -h_;
-    foreach_layer()
+    foreach_layer(){
       h[] = (max(- zb[], 0.)+wave(x, y))*beta[point.l];
+    }
   }
-  
   /*set the velocity field of the wave*/
   foreach(){
     double z = zb[];
@@ -98,6 +67,51 @@ event init (i = 0)
 }
 
 
+void move_origin(){
+  if (Lx>Ly){  
+  size(Lx);
+  }
+  else{
+  size(Ly);
+  }
+  origin (-Lx/2., h_);
+}
+
+int main(int argc, char *argv[])
+  {
+  if (argc>1)
+    LEVEL = atoi(argv[1]);
+    if (argc>2)
+      nl = atoi(argv[2]);
+    else
+      nl = nl_;
+  move_origin();
+  periodic(right);
+  N = 1<<LEVEL;
+  L0 = Lx;
+  G = g;
+  breaking = 0.1;
+  CFL_H = 0.5;
+  run();
+}
+
+event save_velocity(t += Tend/10.; t<=Tend)
+{
+  char filename[200];
+  sprintf(filename, "/home/martin/Documents/master/matlab/ex2/basilisk_results/velocities_nx%d_nl%d_timestep_%d.csv",1<<LEVEL, nl, i);
+  fprintf(stderr, "saving results to:%s\n", filename);
+  FILE *fp = fopen(filename, "w"); //if at the first timestep overwrite the previous file, can later add run parameters here
+  fprintf(fp, "\"Time\",\"layer\",\"Points:0\",\"Points:1\",\"Points:2\",\"u.x\",\"u.z\",\"eta\"\n");
+  foreach(){
+    double z = zb[];
+    foreach_layer(){
+      z += h[]/2;
+      fprintf(fp, "%f, %d, %f, %f, %f, %f, %f, %f\n", t, point.l, x, 0., z, u.x[], w[], eta[]);
+      z += h[]/2;
+    }
+  }
+  fclose(fp); 
+}
 
 /**
 We use gnuplot to visualise the wave profile as the simulation
@@ -136,22 +150,8 @@ event profiles (t += 0.05)
   if (i == 0)
     fprintf (fp, "set term x11\n");
   plot_profile (t, fp);
-  //fprintf (stderr, "%g %f %g %g\n", t, interpolate (eta, 17.3, 0.), ke, gpe);
-  
-  #if 0
-  //print the height of the top of the layers for x = 1
-  double layer_z = 0;
-  foreach_layer() 
-  {
-    layer_z += interpolate(h, 0);
-    fprintf (stderr, "%f, %d\n", layer_z, _layer);
-  }
-  #endif
 }
 
-/**
-This optionally displays consistency between `res_eta` and `deta`
-(corresponding to the `check_eta.h` option above). */
 
 
 event gnuplot (t = Tend) {
@@ -161,28 +161,6 @@ event gnuplot (t = Tend) {
            "set output 'snapshot.png'\n");
   plot_profile (t, fp);
 }
-
-event save_velocity(t += 1; t<=Tend)
-{
-  char filename[200];
-  sprintf(filename, "/home/martin/Documents/master/matlab/ex2/basilisk_results/velocities_nx%d_nl%d.csv",1<<LEVEL, nl_);
-  FILE *fp;
-  if (t==0)
-    fp = fopen(filename, "w"); //if at the first timestep overwrite the previous file, can later add run parameters here
-  else
-    fp = fopen(filename, "a");
-
-  foreach(){
-    double z = zb[];
-    foreach_layer(){
-      z += h[]/2;
-      fprintf(fp, "%f, %d, %f, %f, %f, %f, %f,\n", t, point.l, x, z, u.x[], w[], eta[]);
-      z += h[]/2;
-    }
-  }
-  fclose(fp); 
-}
-
 
 // gauges to compare the surface elevation
 // Gauge gauges[] = {

@@ -26,8 +26,6 @@ idx = squeeze(UVw(5,:,:));
 y_at_crest = yw(:,crest_idx)/h;
 y_to_crest = yw(yw(:,1)<=a, crest_idx);
 y_below_crest_scaled = y_to_crest/h;
-%alpha analytical
-alpha_analytical = @(y) exp(k*y);
 
 %calculate alpha
 [M, N] = size(Uw);
@@ -64,13 +62,16 @@ end
 
 alpha = omega/(a*g*k)*V_norm_mean;
 alpha_std = omega/(a*g*k)*V_norm_std;
-alpha_theoretical = alpha_analytical(y_to_crest);
+
+[~, alpha_stokes_5th,  alpha_stokes_3rd, z] = Stokes5th_alpha(a, omega, h, false);
+
 if create_plot
     figure
     hold on
     plot(alpha, y_at_crest, 'x')
-    plot(alpha_theoretical, y_below_crest_scaled)
-    legend('measured', 'theoretical')
+    plot(alpha_stokes_5th, z/h)
+    plot(alpha_stokes_3rd, z/h)
+    legend('measured', 'Stokes 5th order', 'Stokes 3rd order')
     title('horizontal mean of Alpha over the domain')
     xlabel('$\alpha=\frac{\omega}{agk}(u^2+v^2)^{\frac{1}{2}}$', 'interpreter', 'latex', 'FontSize', 20)
     ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 20, 'rotation', 0)

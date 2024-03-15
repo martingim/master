@@ -1,15 +1,12 @@
 /**
-# Sinusoidal wave propagation over a bar
+# intialised third order stokes wave with periodic boundary conditions
 
-[Beji and Battjes, 1993](/src/references.bib#beji1993) and [Luth et
-al, 1994](/src/references.bib#luth1994) studied experimentally the
-transformation of sinusoidal waves propagating over a submerged bar
-(or reef). This is a good test case for dispersive models as higher
-harmonics are nonlinearly generated and released with phase shifts
-corresponding to the dispersion relation. 
-
-This test case is discussed in [Popinet
-(2020)](/Bibliography#popinet2020) for the layered version. */
+based on bar.c
+the parameters for the wave are from 
+  Jensen, A., Sveen, J. K., Grue, J., Richon, J. B., & Gray, C. (2001). 
+  Accelerations in water waves by extended particle image velocimetry. 
+  Experiments in Fluids, 30(5), 500–510. https://doi.org/10.1007/s003480000229
+*/
 
 #include "grid/multigrid1D.h"
 
@@ -20,13 +17,9 @@ This test case is discussed in [Popinet
 #include "layered/check_eta.h"
 #include "layered/perfs.h"
 
-
-#define ML 1
-
 double ak = 0.16;
-double Tend = 100;
-double Lx = 1.5806755489759965;
-double Ly = 1;
+double Tend = 5;
+double Lx = 0.7903377744879982;
 double k = 7.95;
 double g = 9.81;
 int LEVEL = 7;
@@ -46,7 +39,7 @@ and the velocity field*/
 
 event init (i = 0)
 {
-  //geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
+  geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
   //set the surface of the wave
   foreach() {
     zb[] = -h_;
@@ -66,17 +59,6 @@ event init (i = 0)
   }
 }
 
-
-void move_origin(){
-  if (Lx>Ly){  
-  size(Lx);
-  }
-  else{
-  size(Ly);
-  }
-  origin (-Lx/2., h_);
-}
-
 int main(int argc, char *argv[])
   {
   if (argc>1)
@@ -85,17 +67,20 @@ int main(int argc, char *argv[])
       nl = atoi(argv[2]);
     else
       nl = nl_;
-  move_origin();
+  
+  origin (-Lx/2., h_);
   periodic(right);
   N = 1<<LEVEL;
   L0 = Lx;
   G = g;
   breaking = 0.1;
-  CFL_H = 0.5;
+  CFL_H = .5;
+  TOLERANCE = 10e-5;
+  //theta_H = 0.51;
   run();
 }
 
-event save_velocity(t += Tend/10.; t<=Tend)
+event save_velocity(t += Tend; t<=Tend)
 {
   char filename[200];
   sprintf(filename, "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/velocities_nx%d_nl%d_timestep_%d.csv",1<<LEVEL, nl, i);
@@ -113,18 +98,38 @@ event save_velocity(t += Tend/10.; t<=Tend)
   fclose(fp); 
 }
 
+event save_energy(i++)
+{
+  char filename[200];
+  sprintf(filename, "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/energy_nx%d_nl%d.csv",1<<LEVEL, nl);
+  static FILE * fp = fopen(filename, "w");
+  double ke = 0.;
+  double gpe = 0.;
+  foreach(){
+    double z = zb[]*0;
+    foreach_layer(){
+      double norm2 = sq(w[]);
+      foreach_dimension()
+	      norm2 += sq(u.x[]);
+      ke += norm2*h[]*dv();
+      gpe += (z + h[]/2)*h[]*dv();
+      z += h[];
+    }
+  }
+  if (i == 0)
+    fprintf (fp, "ke, gpe, t\n");
+  fprintf(fp, "%f, %f, %f\n", ke, gpe, t);
+}
+
 /**
 We use gnuplot to visualise the wave profile as the simulation
-runs and to generate a snapshot at $t=40$. 
-
-![Snapshot of waves. The top of the bar is seen in white.](bar/snapshot.png)
-*/
+runs and to generate a snapshot at $t=Tend$.*/
 
 void plot_profile (double t, FILE * fp)
 {
   fprintf (fp,
 	   "set title 't = %.2f'\n"
-	   "p [-0.8:0.8][-0.6:0.04]'-' u 1:3:2 w filledcu lc 3 t ''\n", t);
+	   "p [-%f:%f][-0.6:0.04]'-' u 1:3:2 w filledcu lc 3 t ''\n", t, Lx/2,Lx/2);
   foreach()
     fprintf (fp, "%g %g %g\n", x, eta[], zb[]);
   fprintf (fp, "e\n\n");

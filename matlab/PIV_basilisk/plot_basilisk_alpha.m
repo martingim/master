@@ -19,9 +19,9 @@ for i=1:size(alpha, 1)
     mean_alpha(i) = mean(horizontal_slice_alpha(mask(i,:)), 'omitnan');
 end
 
-
 crest_idx = find_crest_index_from_mask(y, mask);
+mean_alpha = mean_alpha(mask(:,crest_idx));
 crest_y = y(:,crest_idx);
 crest_y = crest_y(mask(:,crest_idx));
-plot(mean_alpha(~isnan(mean_alpha)), crest_y/h, 'DisplayName',sprintf('basilisk timestep %d', timestep))
+plot(mean_alpha, crest_y/h, 'DisplayName',sprintf('ns step:%d', timestep))
 end

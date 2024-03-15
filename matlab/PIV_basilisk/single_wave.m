@@ -92,18 +92,38 @@ plot_velocity_under_crest(run_number,1,image_params);
 %compare with basilisk results
 
 plot_basilisk_velocity_profile(timestep, a, omega, h)
-timestep = 24;
+timestep = 19;
 plot_basilisk_velocity_profile(timestep, a, omega, h)
+
+plot_basilisk_multilayer_velocity_profile(512,20,a,omega,h)
 
 %% plot alpha
 
 plot_alpha(run_number, 1, image_params, true);
 %compare with basilisk results
-timestep = 1;
-plot_basilisk_alpha(timestep, a, k, omega, h);
-timestep = 24;
-plot_basilisk_alpha(timestep, a, k, omega, h);
+% timestep = 0;
+% plot_basilisk_alpha(timestep, a, k, omega, h);
+% timestep = 10;
+% plot_basilisk_alpha(timestep, a, k, omega, h);
+% timestep = 20;
+% plot_basilisk_alpha(timestep, a, k, omega, h);
+basilisk_multilayer_alpha(a, k, omega, h, 512, 20);
+% basilisk_multilayer_alpha(a, k, omega, h, 512, 21);
+basilisk_multilayer_alpha(a, k, omega, h, 512, 40);
 
-basilisk_multilayer_alpha(a, k, omega, h, 128, 20);
-
-% basilisk_multilayer_alpha(a, k, omega, h, 'basilisk_results/velocities_nx64_nl100.csv');
+%% plot energy
+figure;
+nx = [128 256 512];
+nl = [10 20 40];
+for i=nx
+    for j=nl
+        plot_energy_multilayer(i,j)
+    end
+end
+% plot_energy_multilayer(512, 40)
+%% 
+figure;
+plot_energy_multilayer(512, 20) 
+plot_energy_ns(32, 256)
+plot_energy_ns(32, 512)
+plot_energy_ns(64, 256)

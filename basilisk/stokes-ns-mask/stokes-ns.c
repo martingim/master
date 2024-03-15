@@ -170,7 +170,7 @@ event surface_profile (t += Tend/4.; t <= Tend) {
 
 
 //save ordered mesh
-event vtk(t+=0.2;t<Tend){
+event vtk(t+=1;t<Tend){
   char filename[40];
   sprintf(filename, "vtk/TIME-%06g.vtk", (t*100));
   FILE * fp = fopen(filename, "w");
@@ -178,7 +178,7 @@ event vtk(t+=0.2;t<Tend){
 }
 
 //save unordered mesh
-event vtu(t+=0.2;t<Tend){
+event vtu(t+=1;t<Tend){
   char filename[40];
   sprintf(filename, "vtu/TIME-%06g", (t*100));
   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
@@ -188,9 +188,12 @@ event vtu(t+=0.2;t<Tend){
 
 
 
-/*
+
 event logfile (i++)
 {
+  char filename[200];
+  sprintf(filename, "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/energy_ns_coarseN%d_fineN%d.csv",1<<LEVEL, 1<<maxlevel);
+  static FILE * fp = fopen(filename, "w");
   double ke = 0., gpe = 0.;
   foreach (reduction(+:ke) reduction(+:gpe)) {
     double norm2 = 0.;
@@ -199,9 +202,11 @@ event logfile (i++)
     ke += norm2*f[]*dv();
     gpe += y*f[]*dv();
   }
-  printf ("%g %g %g\n", t/(k_/sqrt(g_*k_)), rho1*ke/2., rho1*g_*gpe + 0.125);
+  if (i == 0)
+    fprintf (fp, "ke, gpe, t\n");
+  fprintf(fp, "%f, %f, %f\n", ke, gpe, t);
 }
-*/
+
 
 
 

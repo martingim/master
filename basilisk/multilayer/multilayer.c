@@ -1,7 +1,7 @@
 /**
 # intialised third order stokes wave with periodic boundary conditions
 
-based on bar.c
+based on bar.c and breaking.c
 the parameters for the wave are from 
   Jensen, A., Sveen, J. K., Grue, J., Richon, J. B., & Gray, C. (2001). 
   Accelerations in water waves by extended particle image velocimetry. 
@@ -9,7 +9,6 @@ the parameters for the wave are from
 */
 
 #include "grid/multigrid1D.h"
-
 #include "layered/hydro.h"
 #include "layered/nh.h"
 #include "layered/remap.h"
@@ -17,20 +16,22 @@ the parameters for the wave are from
 #include "layered/check_eta.h"
 #include "layered/perfs.h"
 
-double ak = 0.16;
-double Tend = 5;
-double Lx = 0.7903377744879982;
-double k = 7.95;
+double ak = 0.16;   //wave steepness
+double Tend = 5;    //the end time of the simulation
+double Lx = 0.7903377744879982; //The length of the simulation domain
+double k = 7.95;    //the wavenumber
 double g = 9.81;
-int LEVEL = 7;
-double rmin = 0.5;
+int LEVEL = 7;      //the grid resolution in x direction Nx = 2**LEVEL
+double rmin = 0.5;  //rmin the relative height of the top layer compared to 
+                    //a regular distribution. the rest fo the layers follow a 
+                    //geometric distribution.
 
-#define nl_ 10
+#define nl_ 10  //the default number of layers if none are given as command line arguments
 #define k_ k
-#define h_ 0.6
-#define g_ g
-#define T0 0.7115297011824904
-#include "test/stokes.h"
+#define h_ 0.6  //the water depth
+#define g_ g    
+#define T0 0.7115297011824904 //the period of the waves
+#include "test/stokes.h" //third order stokes wave
 
 
 /**
@@ -40,7 +41,7 @@ and the velocity field*/
 event init (i = 0)
 {
   geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
-  //set the surface of the wave
+  //set the thickess of the layer based on the surface of the wave
   foreach() {
     zb[] = -h_;
     foreach_layer(){
@@ -156,8 +157,6 @@ event profiles (t += 0.05)
     fprintf (fp, "set term x11\n");
   plot_profile (t, fp);
 }
-
-
 
 event gnuplot (t = Tend) {
   FILE * fp = popen ("gnuplot", "w");

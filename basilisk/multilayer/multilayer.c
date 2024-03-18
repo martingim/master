@@ -23,12 +23,12 @@ double k = 7.95;    //the wavenumber
 double g = 9.81;
 int LEVEL = 7;      //the grid resolution in x direction Nx = 2**LEVEL
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
-                    //a regular distribution. the rest fo the layers follow a 
-                    //geometric distribution.
+double h_ = 0.6;                   //a regular distribution. the rest fo the layers follow a 
+char save_location[] = "./";                   //geometric distribution.
 
 #define nl_ 10  //the default number of layers if none are given as command line arguments
 #define k_ k
-#define h_ 0.6  //the water depth
+//#define h_ 0.6  //the water depth
 #define g_ g    
 #define T0 0.7115297011824904 //the period of the waves
 #include "test/stokes.h" //third order stokes wave
@@ -58,6 +58,13 @@ event init (i = 0)
       z += h[]/2;
     }
   }
+#if _MPI
+  fprintf(stderr, "mpi\n");
+#else
+  int num_omp = omp_get_max_threads();
+  fprintf(stderr, "number of openmp threads:%d\n", num_omp);
+#endif
+
 }
 
 int main(int argc, char *argv[])
@@ -84,11 +91,11 @@ int main(int argc, char *argv[])
 event save_velocity(t += Tend; t<=Tend)
 {
   char filename[200];
-  sprintf(filename, "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/velocities_nx%d_nl%d_timestep_%d.csv",1<<LEVEL, nl, i);
+  sprintf(filename, "%svelocities_nx%d_nl%d_timestep_%d.csv", save_location, 1<<LEVEL, nl, i);
   fprintf(stderr, "saving results to:%s\n", filename);
   FILE *fp = fopen(filename, "w"); //if at the first timestep overwrite the previous file, can later add run parameters here
   fprintf(fp, "\"Time\",\"layer\",\"Points:0\",\"Points:1\",\"Points:2\",\"u.x\",\"u.z\",\"eta\"\n");
-  foreach(){
+  foreach(serial){
     double z = zb[];
     foreach_layer(){
       z += h[]/2;
@@ -102,11 +109,12 @@ event save_velocity(t += Tend; t<=Tend)
 event save_energy(i++)
 {
   char filename[200];
-  sprintf(filename, "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/energy_nx%d_nl%d.csv",1<<LEVEL, nl);
+  sprintf(filename, "%senergy_nx%d_nl%d.csv", save_location, 1<<LEVEL, nl);
   static FILE * fp = fopen(filename, "w");
-  double ke = 0.;
   double gpe = 0.;
-  foreach(){
+  double ke = 0.;
+
+  foreach(reduction(+:ke) reduction(+:gpe)){
     double z = zb[]*0;
     foreach_layer(){
       double norm2 = sq(w[]);

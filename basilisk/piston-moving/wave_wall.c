@@ -15,6 +15,7 @@ double Tend = 10.;
 double piston_amplitude = 0.1;
 char save_location[] = "./";
 double frequency = 1.4244;
+
 /**
 No-slip side walls and set and the moving piston parameters are chosen
 adhoc.
@@ -53,7 +54,6 @@ int main() {
   rho1 = 1000.;
   rho2 = 1.;
   N = 1 << LEVEL;
-  
   run();
 }
 /**

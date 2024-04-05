@@ -45,6 +45,7 @@ void mask_domain(){
 
 
 int main() {
+  mkdir("./vtu",0755);
   L0 = 10;
   mu1 = 0.01;
   mu2 = 0.04;
@@ -108,9 +109,6 @@ event vtu(t+=.1;t<10){
   sprintf(filename, "%svtu/TIME-%06g", save_location, (t*100));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 }
-
-
-
 
 /**
 ## Movie

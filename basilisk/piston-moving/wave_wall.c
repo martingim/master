@@ -7,8 +7,10 @@
 
 #include "output_vtu_foreach.h"
 
-int LEVEL = 5;
-int MAXLEVEL = 8;
+int LEVEL = 10;
+int MAXLEVEL = 12;
+double femax = 0.001;
+double uemax = 0.01;
 double Tend = 10.;
 double piston_amplitude = 0.1;
 char save_location[] = "./";
@@ -17,22 +19,31 @@ double frequency = 1.4244;
 No-slip side walls and set and the moving piston parameters are chosen
 adhoc.
 */
-u.t[right] = dirichlet (0.);
-u.t[left] = dirichlet (0.);
+//u.t[right] = dirichlet (0.);
+//u.t[left] = dirichlet (0.);
 
 double U_max = 1.5, //Maximum velocity
   tau = 0.25,       //Time scale for moving
   xp = 1.,         //Start location
   w = 0.25,         //Width
-  h = 3.,           //Max. height
+  h = .9,           //Max. height
   hb = 0.0;           //Height above bottom floor
+
 #define _h 0.6//water depth
 #define U_X (piston_amplitude*sin(t*frequency*3.14*2))
-#define PISTON (w - (x < xp) - (y > h) - (y < hb))
+#define PISTON (w - (x > xp) - (y > h) - (y < hb))
 scalar pstn[];
+
 /**
 Furthermore, domain size and fluid properties are also chosen adhoc.
  */
+
+
+void mask_domain(){
+  mask(y > 2.5 ? top : none);
+}
+
+
 int main() {
   L0 = 10;
   mu1 = 0.01;
@@ -41,6 +52,7 @@ int main() {
   rho1 = 1000.;
   rho2 = 1.;
   N = 1 << LEVEL;
+  
   run();
 }
 /**
@@ -51,11 +63,17 @@ overhead of the piston wave making process. Now virtually all effort
 is targeted towards the piston and not towards the actual wave - basin
 wall collision.
  */
-event init (t = 0) {
+event init (i = 0) {
+  
   pstn.prolongation = pstn.refine = fraction_refine;
   fraction (f, _h - y); //Water depth $h = 2$
-  adapt_wavelet ((scalar *){pstn, f, u}, (double[]){0.02, 0.02, 0.05, 0.05} , MAXLEVEL);
-} 
+ 
+  while (adapt_wavelet((scalar *){pstn, f, u}, (double[]){femax, femax, uemax, uemax} , MAXLEVEL).nf){
+    fraction (f, _h - y);
+    adapt_wavelet((scalar *){pstn, f, u}, (double[]){femax, femax, uemax, uemax} , MAXLEVEL);
+  }
+   mask_domain();
+}
 /**
 The force of gravity is included with $g = 10$
  */
@@ -82,7 +100,7 @@ the water fraction fild and the velocity components.
  */
 
 event adapt (i++)
-  adapt_wavelet ((scalar *){pstn, f, u}, (double[]){0.02, 0.02, 0.05, 0.05} , MAXLEVEL);
+  adapt_wavelet ((scalar *){pstn, f, u}, (double[]){femax, femax, uemax, uemax} , MAXLEVEL);
 
 //save unordered mesh
 event vtu(t+=.1;t<10){
@@ -135,8 +153,6 @@ At t = 10, the simulation is stopped.
  */
 event stop (t = Tend);
 
-
-
 event show_progress(i++)
 {
   float progress = 0;
@@ -144,7 +160,3 @@ event show_progress(i++)
   printf("\r t=%.3f, i=%d, ", t, i);
   printf("%.2f%%\r", progress*100);
 }
-
-
-
-

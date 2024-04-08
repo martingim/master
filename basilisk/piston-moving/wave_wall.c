@@ -1,6 +1,9 @@
 /**
  * 
  */
+#include <sys/stat.h>
+#include "utils.h"
+
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
 #include "tension.h"

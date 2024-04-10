@@ -1,9 +1,5 @@
-/** 
-# Adapt wavelet leave interface
-This is a slightly altered version of the the adapt_wavelet function used to adapt tree structures. The point of this function is to retain maximum level refinement around the interface, described by a volume fraction field vol_frac.
-the padding parameter can have a integer value of 0, 1 or 2. If padding=0, maximum level will be retained only at the interface cells. If padding=1 maximum level will be retained in the interface cells and all closest neighboring cells to the interface cells. if padding=2, it will retain max level 2 cell distances away from the interface cells. You get the idea....
-
-Modifiers: Arne Bockmann and Oystein Lande 2018
+/**
+This is a copy of Oystein Lande's function ([adapt_wavelet_leave_interface.h](/sandbox/oystelan/adapt_wavelet_leave_interface.h)). All credit to him!
 */
 
 struct Adapt_leave_interface {
@@ -19,20 +15,29 @@ struct Adapt_leave_interface {
 
 astats adapt_wavelet_leave_interface (struct Adapt_leave_interface p)
 {
-  if (p.list == NULL)
-    p.list = all;
-  if (is_constant(cm))
+  scalar * list = p.list;
+  
+  if (is_constant(cm)) {
+    if (list == NULL || list == all)
+      list = list_copy (all);
+    boundary (list);
     restriction (p.slist);
+  }
   else {
-    scalar * listr = list_concat ({cm}, p.slist);
+    if (list == NULL || list == all) {
+      list = list_copy ({cm, fm});
+      for (scalar s in all)
+	list = list_add (list, s);
+    }
+    boundary (list);
+    scalar * listr = list_concat (p.slist, {cm});
     restriction (listr);
     free (listr);
   }
 
-
   astats st = {0, 0};
   scalar * listc = NULL;
-  for (scalar s in p.list)
+  for (scalar s in list)
     if (!is_constant(s) && s.restriction != no_restriction)
       listc = list_add (listc, s);
 
@@ -62,9 +67,9 @@ astats adapt_wavelet_leave_interface (struct Adapt_leave_interface p)
 	bool local = is_local(cell);
 	if (!local)
 	  foreach_child()
-	    if (is_local(cell))
-	      local = true; 
-	      break;
+	    if (is_local(cell)) {
+	      local = true; break;
+	    }
 	if (local) {
 	  int i = 0;
 	  static const int just_fine = 1 << (user + 3);
@@ -105,8 +110,6 @@ astats adapt_wavelet_leave_interface (struct Adapt_leave_interface p)
                     }
                 }
               }
-
-
 	      s[] = sc[c++];
 	    }
 	  }
@@ -160,7 +163,10 @@ astats adapt_wavelet_leave_interface (struct Adapt_leave_interface p)
   mpi_all_reduce (st.nf, MPI_INT, MPI_SUM);
   mpi_all_reduce (st.nc, MPI_INT, MPI_SUM);
   if (st.nc || st.nf)
-    mpi_boundary_update (p.list);
+    mpi_boundary_update (list);
+
+  if (list != p.list)
+    free (list);
   
   return st;
 }

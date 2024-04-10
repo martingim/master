@@ -87,19 +87,23 @@ params(run_number) = p;
 save('params.mat', 'params')
 
 %% plot velocity under crest
-timestep = 1;
+% timestep = 1;
 plot_velocity_under_crest(run_number,1,image_params);
 %compare with basilisk results
+% MOVING PISTON
+timestep=171;
+basilisk_moving_piston_velocity_profile(timestep, a, omega, h)
+% plot_basilisk_velocity_profile(timestep, a, omega, h)
+% timestep = 19;
+% plot_basilisk_velocity_profile(timestep, a, omega, h)
 
-plot_basilisk_velocity_profile(timestep, a, omega, h)
-timestep = 19;
-plot_basilisk_velocity_profile(timestep, a, omega, h)
-
-plot_basilisk_multilayer_velocity_profile(512,20,a,omega,h)
+% plot_basilisk_multilayer_velocity_profile(256,20,a,omega,h)
 
 %% plot alpha
 
 plot_alpha(run_number, 1, image_params, true);
+timestep=171;
+basilisk_moving_piston_alpha(a, k, omega, h, timestep)
 %compare with basilisk results
 % timestep = 0;
 % plot_basilisk_alpha(timestep, a, k, omega, h);

@@ -3,7 +3,7 @@
  */
 #include <sys/stat.h>
 #include "utils.h"
-#include "adapt_wavelet_leave_interface__.h"
+#include "adapt_wavelet_leave_interface.h"
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
@@ -13,10 +13,11 @@
 
 int LEVEL = 4;
 int MAXLEVEL = 10;
+double l = 8; //the length of the wave tank
 double femax = 0.1;
 double uemax = 0.01;
 double Tend = 10.;
-double piston_amplitude = 0.02;
+double piston_amplitude = 0.03;
 char save_location[] = "./";
 double omega = 8.95;
 
@@ -26,15 +27,12 @@ double hb = 0.0; //Height above bottom floor
 
 #define w .1 //width of the piston
 #define _h 0.6//water depth
-//#define XP (-piston_amplitude*cos(t*omega))
+#define XP (0.1+piston_amplitude-piston_amplitude*cos(t*omega))
 #define U_X (piston_amplitude*omega*sin(t*omega))  //piston velocity from pos -cos(t*omega)
 #define PISTON (w - (x > xp) - (y > h) - (y < hb))
 scalar pstn[];
 
-/**
-Furthermore, domain size and fluid properties are also chosen adhoc.
- */
-
+//mask away the top of the domain
 void mask_domain(){
   mask(y > 1 ? top : none);
 }
@@ -42,7 +40,7 @@ void mask_domain(){
 
 int main() {
   mkdir("./vtu",0755);
-  L0 = 8;
+  L0 = l;
   f.sigma = 0.01;
   rho1 = 1025;
   rho2 = 1.225;
@@ -52,21 +50,13 @@ int main() {
   run();
 }
 /**
-## initialization
-
-Ideally, a proper wave should be initialized here to avoid the
-overhead of the piston wave making process. Now virtually all effort
-is targeted towards the piston and not towards the actual wave - basin
-wall collision.
+initialization
  */
 event init (i = 0) {
-  init_grid (1 << (MAXLEVEL));  
+  init_grid (1 << (MAXLEVEL));
   pstn.prolongation = pstn.refine = fraction_refine;
   fraction (f, _h - y); //Water depth _h
-  //while(adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,femax}, MAXLEVEL, LEVEL,1).nf);{
-  //  fraction(f, _h-y);
-  //  fraction(pstn, PISTON);
-  //}
+  //adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,1.0}, MAXLEVEL, LEVEL,0);
   mask_domain();
 }
 /**
@@ -82,24 +72,30 @@ The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
  */
 event piston (i++; t < Tend) {
-  xp += dt*U_X; //update the piston position based on the piston speed
-  //xp = XP;      //update the piston position based on the given formula
+  //xp += dt*U_X; //update the piston position based on the piston speed
+  xp = XP;      //update the piston position based on the given formula
   fraction (pstn, PISTON);
   foreach() {
     u.y[] *= (1 - pstn[]);
     u.x[] = u.x[]*(1 - pstn[]) + pstn[]*U_X;
+    /*//set constant waterlevel inside piston
+    if (pstn[] > 0.5 && y < _h){
+      f[] = 1.;
+      }
+    */
   }
-  printf("\nU_X:%f\n", U_X);
+  printf("U_X:%f, xp:%f\n", U_X, xp);
+  
 }
-/**
-The grid is adapted to accuracy represent the piston fraction field,
-the water fraction fild and the velocity components. 
- */
 
+/*
+The grid is adapted to keep max refinement at the air water interface.
+And to minimise the error in the velocity field.
+ */
 event adapt (i++){
-  printf("\nadapting mesh\n");
   adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax, uemax, femax, 1.0}, MAXLEVEL, LEVEL,0);
 }
+
 //save unordered mesh
 event vtu(t+=.01;t<Tend){
   char filename[40];
@@ -140,7 +136,7 @@ event movie (t += 0.1) {
       pstn[] = -1;
   }
   output_ppm (f, file = "f.mp4", mask = pstn,
-	      n = 512, box = {{0,0},{10,5}});
+	      n = 512, box = {{0,0},{l,1}});
 }
 #endif
 /**
@@ -152,6 +148,6 @@ event show_progress(i++)
 {
   float progress = 0;
   progress = t /Tend;
-  printf("\r t=%.3f, i=%d, ", t, i);
-  printf("%.2f%%\r", progress*100);
+  printf("t=%.3f, i=%d, ", t, i);
+  printf("%.2f%%\n", progress*100);
 }

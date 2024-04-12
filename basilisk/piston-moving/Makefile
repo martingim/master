@@ -27,4 +27,4 @@ clean:
 	rm snapshot.png;\
 	rm *.csv;\
 	rm vtu/ascii/*
-	rm vtu/*;
+	rm vtu/*.vtu;

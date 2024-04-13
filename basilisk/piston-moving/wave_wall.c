@@ -2,6 +2,8 @@
  * based on http://basilisk.fr/sandbox/Antoonvh/wave_wall.c
  */
 #include <sys/stat.h>
+#include <stdio.h>
+#include <string.h>
 #include "utils.h"
 #include "adapt_wavelet_leave_interface.h"
 
@@ -12,14 +14,20 @@
 #include "output_vtu_foreach.h"
 
 int LEVEL = 4;
-int MAXLEVEL = 10;
-double l = 8; //the length of the wave tank
+int MAXLEVEL = 11;
+double l = 4; //the length of the wave tank
+double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
 double uemax = 0.01;
-double Tend = 10.;
-double piston_amplitude = 0.03;
+double Tend = 30.;
+double piston_amplitude = 0.0129;
 char save_location[] = "./";
 double omega = 8.95;
+
+int piston_counter = 0;
+#define piston_timesteps 10000
+double piston_positions[piston_timesteps];
+
 
 double xp = 0.1; //the starting position of the piston (at rest leftmost position)
 double h = .9;   //Max. height
@@ -27,18 +35,33 @@ double hb = 0.0; //Height above bottom floor
 
 #define w .1 //width of the piston
 #define _h 0.6//water depth
-#define XP (0.1+piston_amplitude-piston_amplitude*cos(t*omega))
-#define U_X (piston_amplitude*omega*sin(t*omega))  //piston velocity from pos -cos(t*omega)
+//#define XP (0.1+piston_amplitude-piston_amplitude*cos(t*omega))
+//#define U_X (piston_amplitude*omega*sin(t*omega))  //piston velocity from pos -cos(t*omega)
 #define PISTON (w - (x > xp) - (y > h) - (y < hb))
 scalar pstn[];
 
 //mask away the top of the domain
 void mask_domain(){
-  mask(y > 1 ? top : none);
+  mask(y > domain_height ? top : none);
 }
 
+void read_piston_data(){
+  int count = 0;
+  FILE *file;
+  file = fopen("fil3.dat", "r");
+  if(!file)
+    {
+        perror("Error opening piston position file");
+    }
+
+  while(!feof(file) && count< piston_timesteps ){
+    fscanf(file, "%lf", &(piston_positions[count++]));
+  }
+  fclose(file);
+}
 
 int main() {
+  read_piston_data();
   mkdir("./vtu",0755);
   L0 = l;
   f.sigma = 0.01;
@@ -53,9 +76,11 @@ int main() {
 initialization
  */
 event init (i = 0) {
-  init_grid (1 << (MAXLEVEL));
-  pstn.prolongation = pstn.refine = fraction_refine;
+  init_grid (1 << (LEVEL));
+  refine ( abs(y-_h)<0.05 && level < MAXLEVEL);
+  //pstn.prolongation = pstn.refine = fraction_refine;
   fraction (f, _h - y); //Water depth _h
+  //f.prolongation = f.refine = fraction_refine;
   //adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,1.0}, MAXLEVEL, LEVEL,0);
   mask_domain();
 }
@@ -71,9 +96,10 @@ event acceleration (i++) {
 The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
  */
-event piston (i++; t < Tend) {
-  //xp += dt*U_X; //update the piston position based on the piston speed
-  xp = XP;      //update the piston position based on the given formula
+event piston (t+=0.01; t < Tend) {
+  piston_counter += 1;
+  xp = piston_positions[piston_counter]; //update the piston position based on the piston speed
+  //xp = XP;      //update the piston position based on the given formula
   fraction (pstn, PISTON);
   foreach() {
     u.y[] *= (1 - pstn[]);
@@ -97,7 +123,7 @@ event adapt (i++){
 }
 
 //save unordered mesh
-event vtu(t+=.01;t<Tend){
+event vtu(t+=1;t<Tend){
   char filename[40];
   sprintf(filename, "%svtu/TIME-%06g", save_location, (t*100));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
@@ -136,7 +162,7 @@ event movie (t += 0.1) {
       pstn[] = -1;
   }
   output_ppm (f, file = "f.mp4", mask = pstn,
-	      n = 512, box = {{0,0},{l,1}});
+	      n = 512, box = {{0,0},{l,domain_height}});
 }
 #endif
 /**
@@ -148,6 +174,6 @@ event show_progress(i++)
 {
   float progress = 0;
   progress = t /Tend;
-  printf("t=%.3f, i=%d, ", t, i);
+  printf("t=%.3f, i=%d, dt=%f", t, i, dt);
   printf("%.2f%%\n", progress*100);
 }

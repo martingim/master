@@ -91,8 +91,8 @@ save('params.mat', 'params')
 plot_velocity_under_crest(run_number,1,image_params);
 %compare with basilisk results
 % MOVING PISTON
-timestep=171;
-basilisk_moving_piston_velocity_profile(timestep, a, omega, h)
+timestep=0;
+basilisk_moving_piston_velocity_profile(timestep, 0.025, omega, h)
 % plot_basilisk_velocity_profile(timestep, a, omega, h)
 % timestep = 19;
 % plot_basilisk_velocity_profile(timestep, a, omega, h)

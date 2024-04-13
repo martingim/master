@@ -8,7 +8,8 @@ load(timestep_name, "U", "X", "mask");
 y = X(:,:,2);
 
 mask(:,1:20)= 0;
-crest_idx = find_crest_index_from_mask(y, mask);
+mask(:,500:end)= 0;
+crest_idx = find_crest_index_from_mask(y, mask)
 
 % figure;
 % quiver(X(:,:,1),X(:,:,2),U(:,:,1).*mask,U(:,:,2).*mask)

@@ -7,7 +7,7 @@ import glob
 
 save_dir  = "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/"
 
-nx = 100 #number of points to save in x direction in the matlab matrix
+nx = 1000 # number of points to save in x direction in the matlab matrix
 ny = 1000 # y dir
 filenames = glob.glob('vtu/ascii/*.vtu')
 assert(len(filenames)>0)

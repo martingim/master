@@ -26,5 +26,5 @@ clean:
 	rm wave_wall;\
 	rm snapshot.png;\
 	rm *.csv;\
-	rm vtu/ascii/*
+	rm vtu/ascii/*\
 	rm vtu/*.vtu;

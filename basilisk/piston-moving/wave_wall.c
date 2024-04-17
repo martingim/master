@@ -10,9 +10,9 @@
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
-#include "navier-stokes/conserving.h"
-//#include "tension.h"
-#include "reduced.h"
+//#include "navier-stokes/conserving.h"
+#include "tension.h"
+//#include "reduced.h"
 
 #include "output_vtu_foreach.h"
 
@@ -90,20 +90,21 @@ int main() {
   #endif
   mkdir("./vtu",0755);
   L0 = l;
-  //f.sigma = 0.01;
+  f.sigma = 0.01;
   rho1 = 1025;
   rho2 = 1.225;
   mu1 = 8.9e-4; 
   mu2 = 17.4e-6;
-  G.y = -9.81;
+  //G.y = -9.81;
   //Z.y = _h; //set the reduced gravity reference level to the water level at rest
   //Z.x = l/2.;
   N = 1 << LEVEL;
   DT = 0.01;
   //u.n[top]= neumann(0.);
   //p[left] = neumann(0.);
-  u.n[left]  = neumann (0.);
+  //u.n[left]  = neumann (0.);
   u.t[bottom] = dirichlet(0.);
+  u.n[bottom] = dirichlet(0.);
   run();
 }
 
@@ -126,9 +127,10 @@ event init (i = 0) {
   sprintf(filename2, "%svtu/adapt-%06g", save_location, (t*1000));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename2);
  */
-  //foreach(){
-  //pf[] = 0.;
-  //}
+  foreach(){
+    pf[] = f[]*(_h-y)/10./1e-5;
+    p[] = pf[];
+  }
   mask_domain();
 }
 
@@ -155,10 +157,15 @@ event piston (i++) {
   foreach() {
     u.y[] *= (1 - pstn[]);
     u.x[] = u.x[]*(1 - pstn[]) + pstn[]*U_X;
-    p[] *= f[];
   }
   printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
   
+}
+
+event acceleration (i++) {
+  face vector av = a;
+  foreach_face(y)
+    av.y[] = -10;
 }
 
 /*

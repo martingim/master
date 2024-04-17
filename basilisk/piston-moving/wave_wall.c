@@ -16,45 +16,49 @@
 
 #include "output_vtu_foreach.h"
 
-int LEVEL = 4;
-int MAXLEVEL = 11;
+int LEVEL = 7;
+int MAXLEVEL = 10;
 double l = 4; //the length of the wave tank
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
 double uemax = 0.1;
 double Tend = 30.;
 
-char save_location[] = "./";
+char save_location[] = "./"; //the location to save the vtu files
 #define file_input 1 //whether the piston positions are read from file or given by function
 char piston_file[] = "fil3.dat";
 
-#define piston_starting_position 0.1
-double piston_position = piston_starting_position; //the starting position of the piston (at rest leftmost position)
+#define _h 0.6//water depth
 
-#if file_input
+//piston parameters
+#define piston_starting_position 0.4
+double piston_position = piston_starting_position; //the starting position of the piston (at rest leftmost position)
+double h = 1.9;   //height of the piston 
+double hb = 0.0; //piston height above bottom
+#define w .1 //width of the piston
+#define PISTON (w - (fabs(piston_position-x)) - (y > h) - (y < hb))
+scalar pstn[];
+
+//differences based on reading piston data from file or from function
+#if file_input    //reading data from file
 int piston_counter;
 #define piston_timesteps 10000
 double piston_positions[piston_timesteps];
 double piston_time[piston_timesteps];
 double piston_position_p; //previous piston position
 double U_X = 0.; //the speed of the piston
-#else
+#else   //piston data from function
 double omega = 8.95;
 double piston_amplitude = 0.0129;
-#define Piston_Position (0.1+piston_amplitude-piston_amplitude*cos(t*omega))
+#define Piston_Position (piston_starting_position+piston_amplitude*(1-cos(t*omega)))
 #define U_X (piston_amplitude*omega*sin(t*omega))  //piston velocity from pos -cos(t*omega)
 #endif
 
-double h = .9;   //height of the piston 
-double hb = 0.0; //pisotn height above bottom
 
-#define w .1 //width of the piston
-#define _h 0.6//water depth
-#define PISTON (w - (x > piston_position) - (y > h) - (y < hb))
-scalar pstn[];
 
-//mask away the top of the domain
+
 void mask_domain(){
+  //mask away the top of the domain
   mask(y > domain_height ? top : none);
 }
 
@@ -92,8 +96,13 @@ int main() {
   mu1 = 8.9e-4; 
   mu2 = 17.4e-6;
   G.y = -9.81;
+  //Z.y = _h; //set the reduced gravity reference level to the water level at rest
   N = 1 << LEVEL;
   DT = 0.01;
+  //u.n[top]= neumann(0.);
+  //p[left] = neumann(0.);
+  u.n[left]  = neumann (0.);
+  u.t[bottom] = dirichlet(0.);
   run();
 }
 
@@ -101,8 +110,12 @@ int main() {
 event init (i = 0) {
   init_grid (1 << (MAXLEVEL));
   //pstn.prolongation = pstn.refine = fraction_refine;
-  fraction (f, _h - y); //Water depth _h
+  fraction (f, _h - y); //Water depth _h 
   fraction (pstn, PISTON);
+  //adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,1.0}, MAXLEVEL, LEVEL,1);
+  //fraction (f, _h - y); //Water depth _h 
+  //fraction (pstn, PISTON);
+  
   //while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,1.0}, MAXLEVEL, LEVEL,1).nc){
     //fraction (f, _h - y); //Water depth _h
     //fraction (pstn, PISTON);
@@ -126,7 +139,7 @@ event piston (i++) {
   double counter_remainder = 0;
   counter_remainder = t*100.-piston_counter;
   piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
-  printf("t:%f, file_timestep:%d, %%to next file timestep:%f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
+  printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
   U_X = (piston_position-piston_position_p)/dt;
   piston_position_p = piston_position;
 #else
@@ -134,9 +147,11 @@ event piston (i++) {
 #endif
 
   fraction (pstn, PISTON);
+  //u.n[left]  = dirichlet (-U_X);
   foreach() {
     u.y[] *= (1 - pstn[]);
     u.x[] = u.x[]*(1 - pstn[]) + pstn[]*U_X;
+    //p[] *= (1 - pstn[]);
   }
   printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
   
@@ -153,7 +168,7 @@ event adapt (i++){
 //save unordered mesh
 event vtu(t+=.1){
   char filename[40];
-  sprintf(filename, "%svtu/TIME-%06g", save_location, (t*1000));
+  sprintf(filename, "%svtu/TIME-%d", save_location, (i));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 }
 

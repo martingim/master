@@ -1,5 +1,6 @@
 /**
  * based on http://basilisk.fr/sandbox/Antoonvh/wave_wall.c
+ * can read piston position data from file. Set up for file with 100hz sample rate 
  */
 #include <sys/stat.h>
 #include <stdio.h>
@@ -16,7 +17,7 @@
 #include "output_vtu_foreach.h"
 
 int LEVEL = 4;
-int MAXLEVEL = 13;
+int MAXLEVEL = 11;
 double l = 4; //the length of the wave tank
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
@@ -24,19 +25,18 @@ double uemax = 0.1;
 double Tend = 30.;
 
 char save_location[] = "./";
-
-int piston_counter;
-#define piston_timesteps 10000
-double piston_positions[piston_timesteps];
-double piston_time[piston_timesteps];
+#define file_input 1 //whether the piston positions are read from file or given by function
+char piston_file[] = "fil3.dat";
 
 #define piston_starting_position 0.1
 double piston_position = piston_starting_position; //the starting position of the piston (at rest leftmost position)
 
-
-#define file_input 1
 #if file_input
-double piston_position_p=piston_starting_position; //previous piston position
+int piston_counter;
+#define piston_timesteps 10000
+double piston_positions[piston_timesteps];
+double piston_time[piston_timesteps];
+double piston_position_p; //previous piston position
 double U_X = 0.; //the speed of the piston
 #else
 double omega = 8.95;
@@ -45,8 +45,8 @@ double piston_amplitude = 0.0129;
 #define U_X (piston_amplitude*omega*sin(t*omega))  //piston velocity from pos -cos(t*omega)
 #endif
 
-double h = .9;   //Max. height
-double hb = 0.0; //Height above bottom floor
+double h = .9;   //height of the piston 
+double hb = 0.0; //pisotn height above bottom
 
 #define w .1 //width of the piston
 #define _h 0.6//water depth
@@ -58,10 +58,11 @@ void mask_domain(){
   mask(y > domain_height ? top : none);
 }
 
+#if file_input
 void read_piston_data(){
   int count = 0;
   FILE *file;
-  file = fopen("fil3.dat", "r");
+  file = fopen(piston_file, "r");
   if(!file)
     {
         perror("Error opening piston position file");
@@ -74,15 +75,15 @@ void read_piston_data(){
     count++;
   }
   fclose(file);
-#if file_input
   piston_position_p = piston_positions[0];
-#else
   piston_position = piston_positions[0];
-#endif
 }
+#endif
 
 int main() {
+  #if file_input
   read_piston_data();
+  #endif
   mkdir("./vtu",0755);
   L0 = l;
   f.sigma = 0.01;
@@ -95,9 +96,8 @@ int main() {
   DT = 0.01;
   run();
 }
-/**
-initialization
- */
+
+
 event init (i = 0) {
   init_grid (1 << (MAXLEVEL));
   //pstn.prolongation = pstn.refine = fraction_refine;
@@ -126,7 +126,7 @@ event piston (i++) {
   double counter_remainder = 0;
   counter_remainder = t*100.-piston_counter;
   piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
-  printf("t:%f, piston_counter:%d, counter_remainder:%f, piston_position:%f, piston_position_p:%f, asdf:%f\n", t, piston_counter, counter_remainder, piston_position, piston_position_p, piston_positions[piston_counter+1] -piston_positions[piston_counter]);
+  printf("t:%f, file_timestep:%d, %%to next file timestep:%f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
   U_X = (piston_position-piston_position_p)/dt;
   piston_position_p = piston_position;
 #else
@@ -137,11 +137,6 @@ event piston (i++) {
   foreach() {
     u.y[] *= (1 - pstn[]);
     u.x[] = u.x[]*(1 - pstn[]) + pstn[]*U_X;
-    /*//set constant waterlevel inside piston
-    if (pstn[] > 0.5 && y < _h){
-      f[] = 1.;
-      }
-    */
   }
   printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
   

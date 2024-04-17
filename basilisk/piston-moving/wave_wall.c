@@ -109,8 +109,9 @@ int main() {
 }
 
 
-event init (i = 0) {
-  init_grid (1 << (MAXLEVEL));
+event init (i = 0, first) {
+  printf("in init function\n");
+  init_grid (1 << (LEVEL));
   //pstn.prolongation = pstn.refine = fraction_refine;
   fraction (f, _h - y); //Water depth _h 
   fraction (pstn, PISTON);
@@ -118,15 +119,15 @@ event init (i = 0) {
   //fraction (f, _h - y); //Water depth _h 
   //fraction (pstn, PISTON);
   
-  //while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,1.0}, MAXLEVEL, LEVEL,1).nc){
-    //fraction (f, _h - y); //Water depth _h
-    //fraction (pstn, PISTON);
-  //}
-  /* 
+  while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,femax}, MAXLEVEL, LEVEL,1).nf){
+    fraction (f, _h - y); //Water depth _h
+    fraction (pstn, PISTON);
+  }
+  
   char filename2[40];
   sprintf(filename2, "%svtu/adapt-%06g", save_location, (t*1000));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename2);
- */
+ 
   foreach(){
     pf[] = f[]*(_h-y)/10./1e-5;
     p[] = pf[];
@@ -178,6 +179,7 @@ event adapt (i++){
 
 //save unordered mesh
 event vtu(t+=.1){
+  printf("in save vtu function\n");
   char filename[40];
   sprintf(filename, "%svtu/TIME-%d", save_location, (i));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);

@@ -9,20 +9,21 @@
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
+#include "navier-stokes/conserving.h"
 #include "tension.h"
+#include "reduced.h"
 
 #include "output_vtu_foreach.h"
 
 int LEVEL = 4;
 int MAXLEVEL = 13;
-double l = 16; //the length of the wave tank
+double l = 4; //the length of the wave tank
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
-double uemax = 0.01;
+double uemax = 0.1;
 double Tend = 30.;
-double piston_amplitude = 0.0129;
+
 char save_location[] = "./";
-double omega = 8.95;
 
 int piston_counter;
 #define piston_timesteps 10000
@@ -38,6 +39,8 @@ double piston_position = piston_starting_position; //the starting position of th
 double piston_position_p=piston_starting_position; //previous piston position
 double U_X = 0.; //the speed of the piston
 #else
+double omega = 8.95;
+double piston_amplitude = 0.0129;
 #define Piston_Position (0.1+piston_amplitude-piston_amplitude*cos(t*omega))
 #define U_X (piston_amplitude*omega*sin(t*omega))  //piston velocity from pos -cos(t*omega)
 #endif
@@ -71,8 +74,11 @@ void read_piston_data(){
     count++;
   }
   fclose(file);
+#if file_input
   piston_position_p = piston_positions[0];
+#else
   piston_position = piston_positions[0];
+#endif
 }
 
 int main() {
@@ -84,6 +90,7 @@ int main() {
   rho2 = 1.225;
   mu1 = 8.9e-4; 
   mu2 = 17.4e-6;
+  G.y = -9.81;
   N = 1 << LEVEL;
   DT = 0.01;
   run();
@@ -93,22 +100,22 @@ initialization
  */
 event init (i = 0) {
   init_grid (1 << (MAXLEVEL));
-  //refine ( abs(y-_h)<0.05 && level < MAXLEVEL);
-  printf("pisoton_pis:%f\n", piston_position);
-  pstn.prolongation = pstn.refine = fraction_refine;
+  //pstn.prolongation = pstn.refine = fraction_refine;
   fraction (f, _h - y); //Water depth _h
-  //f.prolongation = f.refine = fraction_refine;
-  //adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,1.0}, MAXLEVEL, LEVEL,0);
+  fraction (pstn, PISTON);
+  //while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,1.0}, MAXLEVEL, LEVEL,1).nc){
+    //fraction (f, _h - y); //Water depth _h
+    //fraction (pstn, PISTON);
+  //}
+  /* 
+  char filename2[40];
+  sprintf(filename2, "%svtu/adapt-%06g", save_location, (t*1000));
+  output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename2);
+ */
   mask_domain();
 }
-/**
-The force of gravity is included with $g = 9.81$
- */
-event acceleration (i++) {
-  face vector av = a;
-  foreach_face(y)
-    av.y[] = -9.81;
-}
+
+
 /**
 The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
@@ -149,7 +156,7 @@ event adapt (i++){
 }
 
 //save unordered mesh
-event vtu(t+=1 ;t<Tend){
+event vtu(t+=.1){
   char filename[40];
   sprintf(filename, "%svtu/TIME-%06g", save_location, (t*1000));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);

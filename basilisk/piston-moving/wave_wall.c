@@ -17,8 +17,8 @@
 #include "output_vtu_foreach.h"
 
 int LEVEL = 7;
-int MAXLEVEL = 10;
-double l = 4; //the length of the wave tank
+int MAXLEVEL = 14;
+double l = 8; //the length of the wave tank
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
 double uemax = 0.1;
@@ -112,27 +112,25 @@ int main() {
 event init (i = 0, first) {
   printf("in init function\n");
   init_grid (1 << (LEVEL));
+  mask_domain();
   //pstn.prolongation = pstn.refine = fraction_refine;
   fraction (f, _h - y); //Water depth _h 
   fraction (pstn, PISTON);
-  //adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,1.0}, MAXLEVEL, LEVEL,1);
-  //fraction (f, _h - y); //Water depth _h 
-  //fraction (pstn, PISTON);
   
-  while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax,uemax,femax,femax}, MAXLEVEL, LEVEL,1).nf){
+  while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,femax, 1.}, MAXLEVEL, LEVEL,1).nf){
+    foreach(){
+      pf[] = f[]*(_h-y)/10./1e-5;
+      p[] = pf[];
+    }
     fraction (f, _h - y); //Water depth _h
     fraction (pstn, PISTON);
   }
-  
-  char filename2[40];
-  sprintf(filename2, "%svtu/adapt-%06g", save_location, (t*1000));
-  output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename2);
- 
   foreach(){
     pf[] = f[]*(_h-y)/10./1e-5;
     p[] = pf[];
   }
-  mask_domain();
+  fraction (f, _h - y); //Water depth _h
+  fraction (pstn, PISTON);
 }
 
 
@@ -174,14 +172,14 @@ The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
  */
 event adapt (i++){
-  adapt_wavelet_leave_interface({u.x, u.y},{pstn,f},(double[]){uemax, uemax, femax, 1.0}, MAXLEVEL, LEVEL,0);
+  adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, femax,1.0}, MAXLEVEL, LEVEL,0);
 }
 
 //save unordered mesh
 event vtu(t+=.1){
   printf("in save vtu function\n");
   char filename[40];
-  sprintf(filename, "%svtu/TIME-%d", save_location, (i));
+  sprintf(filename, "%svtu/TIME-%04.0f", save_location, (t*100));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 }
 

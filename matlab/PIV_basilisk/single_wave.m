@@ -88,6 +88,7 @@ save('params.mat', 'params')
 
 %% plot velocity under crest
 % timestep = 1;
+close all;
 plot_velocity_under_crest(run_number,1,image_params);
 %compare with basilisk results
 % MOVING PISTON

@@ -4,6 +4,7 @@ from numpy import mean
 import numpy as np
 import scipy
 import glob
+import os
 
 save_dir  = "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/"
 
@@ -38,12 +39,23 @@ for filename in filenames:
     y_interpolation_points = np.linspace(max(Y), min(Y), ny)
     x,y= np.meshgrid(x_interpolation_points, y_interpolation_points)
     interpolation_points = np.stack([x,y], axis=2)
-    interpolated_U = scipy.interpolate.griddata(center_points, center_U, interpolation_points)
-    interpolated_f = scipy.interpolate.griddata(center_points, f, interpolation_points)
+    interpolated_U = scipy.interpolate.griddata(center_points, center_U, interpolation_points,method='linear')
+    interpolated_f = scipy.interpolate.griddata(center_points, f, interpolation_points,method='linear')
     matlab_dict = {}
     matlab_dict['U'] = interpolated_U
     matlab_dict['X'] = interpolation_points
     matlab_dict['mask'] = interpolated_f>0.5
     
+    os.remove(save_dir + f"moving_piston_timestep_{i}.mat")
     scipy.io.savemat(save_dir + f"moving_piston_timestep_{i}.mat", matlab_dict)
+    
     i += 1
+
+# print(interpolated_U[interpolated_f>0.5])
+# print(interpolated_U.shape)
+# idx = 256
+# plt.figure()
+# while(idx<300):
+#     plt.plot(interpolated_U[:,idx,0], interpolation_points[:,idx,1])
+#     idx += 1
+# plt.show()

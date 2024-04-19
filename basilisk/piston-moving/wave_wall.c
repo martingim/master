@@ -1,4 +1,4 @@
-/**
+/*
  * based on http://basilisk.fr/sandbox/Antoonvh/wave_wall.c
  * can read piston position data from file. Set up for file with 100hz sample rate 
  */
@@ -10,18 +10,19 @@
 
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
-//#include "navier-stokes/conserving.h"
+#include "navier-stokes/conserving.h"
 #include "tension.h"
 //#include "reduced.h"
 
 #include "output_vtu_foreach.h"
 
-int LEVEL = 7;
-int MAXLEVEL = 14;
+int LEVEL = 6;
+int MAXLEVEL = 12;
+int padding = 0;
 double l = 8; //the length of the wave tank
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
-double uemax = 0.1;
+double uemax = 0.0001;
 double Tend = 30.;
 
 char save_location[] = "./"; //the location to save the vtu files
@@ -95,49 +96,44 @@ int main() {
   rho2 = 1.225;
   mu1 = 8.9e-4; 
   mu2 = 17.4e-6;
-  //G.y = -9.81;
-  //Z.y = _h; //set the reduced gravity reference level to the water level at rest
-  //Z.x = l/2.;
   N = 1 << LEVEL;
   DT = 0.01;
-  //u.n[top]= neumann(0.);
-  //p[left] = neumann(0.);
-  //u.n[left]  = neumann (0.);
   u.t[bottom] = dirichlet(0.);
   u.n[bottom] = dirichlet(0.);
   run();
 }
 
 
-event init (i = 0, first) {
+event init (i = 0) {
   printf("in init function\n");
   init_grid (1 << (LEVEL));
   mask_domain();
-  //pstn.prolongation = pstn.refine = fraction_refine;
-  fraction (f, _h - y); //Water depth _h 
-  fraction (pstn, PISTON);
-  
-  while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,femax, 1.}, MAXLEVEL, LEVEL,1).nf){
+  fraction (f, _h - y); //set the water depth _h 
+  fraction (pstn, PISTON); //set the piston fraction
+  int keep_refining=1;
+  while (keep_refining){
+    keep_refining = adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,femax, 1.}, MAXLEVEL, LEVEL,padding).nf;
     foreach(){
       pf[] = f[]*(_h-y)/10./1e-5;
       p[] = pf[];
     }
-    fraction (f, _h - y); //Water depth _h
-    fraction (pstn, PISTON);
+    fraction (f, _h - y); //set the water level on the refined mesh
+    fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }
+  unrefine ((x < 0.45)&&(level>6));
   foreach(){
     pf[] = f[]*(_h-y)/10./1e-5;
     p[] = pf[];
   }
-  fraction (f, _h - y); //Water depth _h
-  fraction (pstn, PISTON);
+  fraction (f, _h - y); //set the water level on the refined mesh
+  fraction (pstn, PISTON); //set the piston fraction on the refined mesh
 }
 
 
 /**
 The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
- */
+*/
 event piston (i++) {
 #if file_input
   piston_counter = floor(t*100);
@@ -150,21 +146,18 @@ event piston (i++) {
 #else
   piston_position = Piston_Position;
 #endif
-
   fraction (pstn, PISTON);
-  //u.n[left]  = dirichlet (-U_X);
   foreach() {
     u.y[] *= (1 - pstn[]);
     u.x[] = u.x[]*(1 - pstn[]) + pstn[]*U_X;
   }
   printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
-  
 }
 
 event acceleration (i++) {
   face vector av = a;
   foreach_face(y)
-    av.y[] = -10;
+    av.y[] = -9.81;
 }
 
 /*
@@ -172,12 +165,15 @@ The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
  */
 event adapt (i++){
-  adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, femax,1.0}, MAXLEVEL, LEVEL,0);
+  adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, femax,1.0}, MAXLEVEL, LEVEL,padding);
+  unrefine ((x < 0.45)&&(level>6)); //unrefine the area to the left of the piston
+  unrefine (y>0.65);
 }
 
 //save unordered mesh
 event vtu(t+=.1){
-  printf("in save vtu function\n");
+//event vtu(i++){
+  printf("Saving vtu file\n");
   char filename[40];
   sprintf(filename, "%svtu/TIME-%04.0f", save_location, (t*100));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
@@ -186,7 +182,7 @@ event vtu(t+=.1){
 /**
 ## Movie
 
-   For systems using Bview, `movie.mp4` may be generated.
+  For systems using Bview, `movie.mp4` may be generated.
 
 ![The water, piston and grid structure (mirrored)](wave_wall/movie.mp4)
 
@@ -206,7 +202,7 @@ event bview_movie (t += 0.1) {
   end_mirror();
   save ("movie.mp4");
 }
-/**
+/*
 Else, `f.mp4` will have to reaveal the dynamics.
  */
 #else
@@ -221,15 +217,15 @@ event movie (t += 0.1) {
 }
 */
 #endif
-/**
-At t = 10, the simulation is stopped.
- */
+/*
+simulation stopped at Tend
+*/
 event stop (t = Tend);
 
 event show_progress(i++)
 {
   float progress = 0;
   progress = t /Tend;
-  printf("t=%.3f, i=%d, dt=%f, ", t, i, dt);
+  printf("t=%.3f, i=%d, dt=%g, ", t, i, dt);
   printf("%.2f%%\n", progress*100);
 }

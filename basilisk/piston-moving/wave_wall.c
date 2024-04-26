@@ -17,14 +17,15 @@
 #include "output_vtu_foreach.h"
 
 int LEVEL = 6;
-int MAXLEVEL = 11;
+int MAXLEVEL = 12;
 int padding = 0;
-double l = 8; //the length of the wave tank
+double tank_length = 24.6; //length of the wave tank from the piston
+double l = 32; //the size of the domain later masked to match the length of the wave tank from the piston
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
 double uemax = 0.0001;
 double Tend = 30.;
-
+double height_probes[]={8.00, 10.04, 10.75, 11.50};
 char save_location[] = "./"; //the location to save the vtu files
 #define file_input 1 //whether the piston positions are read from file or given by function
 char piston_file[] = "fil3.dat";
@@ -34,12 +35,11 @@ char piston_file[] = "fil3.dat";
 //piston parameters
 #define piston_starting_position 0.4
 double piston_position = piston_starting_position; //the starting position of the piston (at rest leftmost position)
-double h = 0.5;   //height of the piston above the still water level
-double hb = 0.0; //piston height above bottom
+double piston_height = 0.2;   //height of the piston above the still water level
+double piston_bottom_clearance = 0.0; //piston distance above bottom
 #define w .1 //width of the piston
-#define PISTON (w - (fabs(piston_position-x)) - (y > h) - (y < hb-_h))
+#define PISTON (0.1-(x>piston_position)-(x<piston_position-w)-(y<-_h+piston_bottom_clearance)-(y>piston_height)) //subtract conditions outside the piston
 scalar pstn[];
-
 //differences based on reading piston data from file or from function
 #if file_input    //reading data from file
 int piston_counter;
@@ -51,7 +51,7 @@ double U_X = 0.; //the speed of the piston
 #else   //piston data from function
 double omega = 8.95;
 double piston_amplitude = 0.0129;
-#define Piston_Position (piston_starting_position+piston_amplitude*(1-cos(t*omega)))
+#define Piston_Position (piston_amplitude*(1-cos(t*omega)))
 #define U_X (piston_amplitude*omega*sin(t*omega))  //piston velocity from pos -cos(t*omega)
 #endif
 
@@ -61,6 +61,7 @@ double piston_amplitude = 0.0129;
 void mask_domain(){
   //mask away the top of the domain
   mask(y > domain_height - _h ? top : none);
+  mask(x > tank_length ? right : none);
 }
 
 #if file_input
@@ -75,18 +76,23 @@ void read_piston_data(){
   int _running=1;
   while(_running && count< piston_timesteps ){
     _running = fscanf(file, "%lf", &(piston_positions[count]));
-    piston_positions[count] /=100.;
-    piston_positions[count] += piston_starting_position;
+    piston_positions[count] /=100.; //convert to meters
     count++;
   }
   fclose(file);
+  double start_offset = piston_positions[0];
+  for (int i=0;i<count;i++){
+    piston_positions[i] -= start_offset;
+  }
   piston_position_p = piston_positions[0];
   piston_position = piston_positions[0];
 }
 #endif
 
 int main() {
-  origin(0., -_h);
+  printf("x<piston: %d\n\n", 3<2);
+
+  origin(-piston_starting_position, -_h);
   #if file_input
   read_piston_data();
   #endif
@@ -121,7 +127,7 @@ event init (i = 0) {
     fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }
-  unrefine ((x < 0.45)&&(level>6));
+  unrefine ((x < -0.05)&&(level>6));
   foreach(){
     pf[] = f[]*(-y)/10./1e-5;
     p[] = pf[];
@@ -167,7 +173,7 @@ And to minimise the error in the velocity field.
  */
 event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, femax,1.0}, MAXLEVEL, LEVEL,padding);
-  unrefine ((x < 0.45)&&(level>6)); //unrefine the area to the left of the piston
+  unrefine ((x < -0.05)&&(level>6)); //unrefine the area to the left of the piston
   unrefine (y>0.65);
 }
 

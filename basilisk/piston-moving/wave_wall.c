@@ -17,7 +17,7 @@
 #include "output_vtu_foreach.h"
 
 int LEVEL = 6;
-int MAXLEVEL = 12;
+int MAXLEVEL = 11;
 int padding = 0;
 double l = 8; //the length of the wave tank
 double domain_height = 1.0; //the height of the simulation domain
@@ -34,10 +34,10 @@ char piston_file[] = "fil3.dat";
 //piston parameters
 #define piston_starting_position 0.4
 double piston_position = piston_starting_position; //the starting position of the piston (at rest leftmost position)
-double h = 1.9;   //height of the piston 
+double h = 0.5;   //height of the piston above the still water level
 double hb = 0.0; //piston height above bottom
 #define w .1 //width of the piston
-#define PISTON (w - (fabs(piston_position-x)) - (y > h) - (y < hb))
+#define PISTON (w - (fabs(piston_position-x)) - (y > h) - (y < hb-_h))
 scalar pstn[];
 
 //differences based on reading piston data from file or from function
@@ -60,7 +60,7 @@ double piston_amplitude = 0.0129;
 
 void mask_domain(){
   //mask away the top of the domain
-  mask(y > domain_height ? top : none);
+  mask(y > domain_height - _h ? top : none);
 }
 
 #if file_input
@@ -86,6 +86,7 @@ void read_piston_data(){
 #endif
 
 int main() {
+  origin(0., -_h);
   #if file_input
   read_piston_data();
   #endif
@@ -108,24 +109,24 @@ event init (i = 0) {
   printf("in init function\n");
   init_grid (1 << (LEVEL));
   mask_domain();
-  fraction (f, _h - y); //set the water depth _h 
+  fraction (f, - y); //set the water depth _h 
   fraction (pstn, PISTON); //set the piston fraction
   int keep_refining=1;
   while (keep_refining){
     keep_refining = adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,femax, 1.}, MAXLEVEL, LEVEL,padding).nf;
     foreach(){
-      pf[] = f[]*(_h-y)/10./1e-5;
+      pf[] = f[]*(-y)/10./1e-5;
       p[] = pf[];
     }
-    fraction (f, _h - y); //set the water level on the refined mesh
+    fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }
   unrefine ((x < 0.45)&&(level>6));
   foreach(){
-    pf[] = f[]*(_h-y)/10./1e-5;
+    pf[] = f[]*(-y)/10./1e-5;
     p[] = pf[];
   }
-  fraction (f, _h - y); //set the water level on the refined mesh
+  fraction (f, - y); //set the water level on the refined mesh
   fraction (pstn, PISTON); //set the piston fraction on the refined mesh
 }
 

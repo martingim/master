@@ -56,8 +56,6 @@ double piston_amplitude = 0.0129;
 #endif
 
 
-
-
 void mask_domain(){
   //mask away the top of the domain
   mask(y > domain_height - _h ? top : none);
@@ -90,8 +88,6 @@ void read_piston_data(){
 #endif
 
 int main() {
-  printf("x<piston: %d\n\n", 3<2);
-
   origin(-piston_starting_position, -_h);
   #if file_input
   read_piston_data();
@@ -107,12 +103,16 @@ int main() {
   DT = 0.01;
   u.t[bottom] = dirichlet(0.);
   u.n[bottom] = dirichlet(0.);
+#if _OPENMP
+  int num_omp = omp_get_max_threads();
+  fprintf(stderr, "number of openmp threads:%d\n", num_omp);
+#endif
   run();
+  
 }
 
 
 event init (i = 0) {
-  printf("in init function\n");
   init_grid (1 << (LEVEL));
   mask_domain();
   fraction (f, - y); //set the water depth _h 
@@ -174,7 +174,7 @@ And to minimise the error in the velocity field.
 event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, femax,1.0}, MAXLEVEL, LEVEL,padding);
   unrefine ((x < -0.05)&&(level>6)); //unrefine the area to the left of the piston
-  unrefine (y>0.65);
+  unrefine (y>0.05);
 }
 
 //save unordered mesh

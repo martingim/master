@@ -7,7 +7,8 @@
 #include <string.h>
 #include "utils.h"
 #include "adapt_wavelet_leave_interface.h"
-
+#include "heights.h"
+#include "output.h"
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
 #include "navier-stokes/conserving.h"
@@ -25,7 +26,9 @@ double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
 double uemax = 0.0001;
 double Tend = 30.;
-double height_probes[]={8.00, 10.04, 10.75, 11.50};
+double probe_positions[]={8.00, 10.04, 10.75, 11.50};
+int n_probes = 4;
+vector h[]; //scalar field of the distance from the surface, using heights.h
 char save_location[] = "./"; //the location to save the vtu files
 #define file_input 1 //whether the piston positions are read from file or given by function
 char piston_file[] = "fil3.dat";
@@ -175,6 +178,33 @@ event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, femax,1.0}, MAXLEVEL, LEVEL,padding);
   unrefine ((x < -0.05)&&(level>6)); //unrefine the area to the left of the piston
   unrefine (y>0.05);
+}
+
+
+event surface_probes(t+=0.01){
+  char filename[40];
+  sprintf(filename, "surface_probes.csv");
+  FILE *fp = fopen(filename, "a");
+  fprintf(fp, "%f, ", t);
+  heights(f, h);
+  double min_height; //vertical distance from the center of the cell to the air water interface
+  double surface_elevation;
+  for (int probe_n=0;probe_n<n_probes;probe_n++){
+    min_height=1;
+    foreach(serial){
+      if((fabs(x-probe_positions[probe_n])<Delta/2.0)&&(fabs(y)<0.1)){
+        if(h.y[] != nodata){
+          if (fabs(min_height)>fabs(height(h.y[])*Delta)){
+            min_height=height(h.y[])*Delta;
+            surface_elevation = y + height(h.y[])*Delta;
+          }
+        }
+      }
+    }
+    fprintf(fp, "%f, ", surface_elevation);
+  }
+  fprintf(fp, "\n");
+  fclose(fp);
 }
 
 //save unordered mesh

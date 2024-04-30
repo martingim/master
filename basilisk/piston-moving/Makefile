@@ -28,5 +28,4 @@ clean:
 	rm snapshot.png;\
 	rm *.csv;\
 	rm vtu/ascii/*\
-	rm vtu/*.vtu;\
-	rm surface_probes.csv;
+	rm vtu/*.vtu;

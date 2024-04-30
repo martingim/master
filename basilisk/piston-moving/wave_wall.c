@@ -18,7 +18,7 @@
 #include "output_vtu_foreach.h"
 
 int LEVEL = 6;
-int MAXLEVEL = 12;
+int MAXLEVEL = 13;
 int padding = 0;
 double tank_length = 24.6; //length of the wave tank from the piston
 double l = 32; //the size of the domain later masked to match the length of the wave tank from the piston
@@ -57,7 +57,6 @@ double piston_amplitude = 0.0129;
 #define Piston_Position (piston_amplitude*(1-cos(t*omega)))
 #define U_X (piston_amplitude*omega*sin(t*omega))  //piston velocity from pos -cos(t*omega)
 #endif
-
 
 void mask_domain(){
   //mask away the top of the domain
@@ -108,12 +107,12 @@ int main() {
   u.n[bottom] = dirichlet(0.);
 #if _OPENMP
   int num_omp = omp_get_max_threads();
-  fprintf(stderr, "number of openmp threads:%d\n", num_omp);
+  fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
+  omp_set_num_threads(4);
+  fprintf(stderr, "set openmp threads:%d\n", omp_get_max_threads());
 #endif
   run();
-  
 }
-
 
 event init (i = 0) {
   init_grid (1 << (LEVEL));
@@ -138,7 +137,6 @@ event init (i = 0) {
   fraction (f, - y); //set the water level on the refined mesh
   fraction (pstn, PISTON); //set the piston fraction on the refined mesh
 }
-
 
 /**
 The moving piston is implemented via Stephane's trick. Note that this
@@ -180,7 +178,6 @@ event adapt (i++){
   unrefine (y>0.05);
 }
 
-
 event surface_probes(t+=0.01){
   char filename[40];
   sprintf(filename, "surface_probes.csv");
@@ -216,44 +213,6 @@ event vtu(t+=.1){
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 }
 
-/**
-## Movie
-
-  For systems using Bview, `movie.mp4` may be generated.
-
-![The water, piston and grid structure (mirrored)](wave_wall/movie.mp4)
-
-We can see vortex shedding from the piston, wave overtopping and no
-significant jetting at the walls. Meaning that the setup could be much
-improved.
- */
-
-#if 0
-#include "view.h"
-event bview_movie (t += 0.1) {
-  view (tx = -0.5);
-  draw_vof ("pstn", filled = 1, fc = {0.2,0.2,0.2});
-  draw_vof ("f", filled = 1, fc = {0.1,0.1,0.9});
-  begin_mirror ({0,-1});
-  cells();
-  end_mirror();
-  save ("movie.mp4");
-}
-/*
-Else, `f.mp4` will have to reaveal the dynamics.
- */
-#else
-/*
-event movie (t += 0.1) {
-  foreach() {
-    if (pstn[] > 0.5)
-      pstn[] = -1;
-  }
-  output_ppm (f, file = "f.mp4", mask = pstn,
-	      n = 512, box = {{0,0},{l,domain_height}});
-}
-*/
-#endif
 /*
 simulation stopped at Tend
 */

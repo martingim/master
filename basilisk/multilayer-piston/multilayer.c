@@ -16,24 +16,21 @@ the parameters for the wave are from
 #include "layered/check_eta.h"
 #include "layered/perfs.h"
 
-double ak = 0.16;   //wave steepness
 double Tend = 30;    //the end time of the simulation
 double Lx = 24.6; //The length of the simulation domain
-double k = 7.95;    //the wavenumber
 double g = 9.81;
 double omega = 8.95;
+double piston_amplitude = 0.0128;
 int LEVEL = 13;      //the grid resolution in x direction Nx = 2**LEVEL
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
 double h_ = 0.6;                   //a regular distribution. the rest fo the layers follow a 
 char save_location[] = "./";                   //geometric distribution.
 
 #define nl_ 20  //the default number of layers if none are given as command line arguments
-#define k_ k
-//#define h_ 0.6  //the water depth
 #define g_ g    
-#define T0 0.7115297011824904 //the period of the waves
-#include "test/stokes.h" //third order stokes wave
 
+//U=d/dt (piston_amplitude*tanh(t)*sin(omega*t))
+#define U (piston_amplitude*(sin(omega*t)/cosh(t)/cosh(t)+tanh(t)*omega*cos(omega*t)))
 
 /**
 We use Stokes third order wave from src/test/stokes.h to initialise the surface elevation 
@@ -41,14 +38,14 @@ and the velocity field*/
 
 event init (i = 0)
 {
-  u.n[left]  = radiation (0.03*tanh(t)*sin(omega*t));
+  u.n[left]  = radiation (U);
   u.n[right] = + radiation (0);
 
-  geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
+  //geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
   foreach() {
     zb[] = -h_;
     foreach_layer(){
-      h[] = h_*beta[point.l];
+      h[] = h_/nl;
     }
   }
 #if _MPI
@@ -69,7 +66,7 @@ int main(int argc, char *argv[])
     else
       nl = nl_;
   
-  origin (0, h_);
+  //origin (0, h_);
   N = 1<<LEVEL;
   L0 = Lx;
   G = g;
@@ -165,6 +162,15 @@ event gnuplot (t = Tend) {
            "set output 'snapshot.png'\n");
   plot_profile (t, fp);
 }
+
+event show_progress(i++)
+{
+  float progress = 0;
+  progress = t /Tend;
+  printf("t=%.3f, i=%d, dt=%g, ", t, i, dt);
+  printf("%.2f%%\n", progress*100);
+}
+
 
 // gauges to compare the surface elevation
 // Gauge gauges[] = {

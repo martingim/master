@@ -30,8 +30,9 @@ char save_location[] = "./";
 #define nl_ 5  //the default number of layers if none are given as command line arguments
 #define g_ g
 
+double t_dim = 1;
 //U=d/dt (piston_amplitude*tanh(t)*sin(omega*t))
-#define U (piston_amplitude*(sin(omega*t)/cosh(t)/cosh(t)+tanh(t)*omega*cos(omega*t)))
+#define U (piston_amplitude*(t_dim*sin(omega*t)/cosh(t*t_dim)/cosh(t*t_dim)+tanh(t*t_dim)*omega*cos(omega*t)))
 
 /**
 We use Stokes third order wave from src/test/stokes.h to initialise the surface elevation 

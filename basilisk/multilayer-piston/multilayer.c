@@ -21,13 +21,14 @@ double Lx = 24.6; //The length of the simulation domain
 double g = 9.81;
 double omega = 8.95;
 double piston_amplitude = 0.0128;
-int LEVEL = 13;      //the grid resolution in x direction Nx = 2**LEVEL
+int LEVEL = 9;      //the grid resolution in x direction Nx = 2**LEVEL
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
-double h_ = 0.6;                   //a regular distribution. the rest fo the layers follow a 
-char save_location[] = "./";                   //geometric distribution.
+                    //a regular distribution. the rest fo the layers follow a geometric distribution.
+double h_ = 0.6;                   
+char save_location[] = "./";
 
-#define nl_ 20  //the default number of layers if none are given as command line arguments
-#define g_ g    
+#define nl_ 5  //the default number of layers if none are given as command line arguments
+#define g_ g
 
 //U=d/dt (piston_amplitude*tanh(t)*sin(omega*t))
 #define U (piston_amplitude*(sin(omega*t)/cosh(t)/cosh(t)+tanh(t)*omega*cos(omega*t)))
@@ -128,7 +129,7 @@ void plot_profile (double t, FILE * fp)
   fprintf (fp,
 	   "set title 't = %.2f'\n"
 	   "p [0.0:%f][-0.8:0.6]'-' u 1:3:2 w filledcu lc 3 t ''\n", t, Lx);
-  foreach()
+  foreach(serial)
     fprintf (fp, "%g %g %g\n", x, eta[], zb[]);
   fprintf (fp, "e\n\n");
   fflush (fp);
@@ -172,12 +173,15 @@ event show_progress(i++)
 }
 
 
-// gauges to compare the surface elevation
-// Gauge gauges[] = {
-//   {"X_0",  0},
-//   {NULL}
-// };
+//gauges to compare the surface elevation
+Gauge gauges[] = {
+  {"X_0",  8.009},
+  {"X_1",  10.048},
+  {"X_2",  10.745},
+  {"X_3",  11.498},
+  {NULL}
+  };
 
 
-// event output (i += 2; t <= Tend)
-//   output_gauges (gauges, {eta});
+event output (t += 0.01; t <= Tend)
+  output_gauges (gauges, {eta});

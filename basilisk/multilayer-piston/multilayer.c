@@ -21,13 +21,13 @@ double Lx = 24.6; //The length of the simulation domain
 double g = 9.81;
 double omega = 8.95;
 double piston_amplitude = 0.0128;
-int LEVEL = 9;      //the grid resolution in x direction Nx = 2**LEVEL
+int LEVEL = 12;      //the grid resolution in x direction Nx = 2**LEVEL
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
                     //a regular distribution. the rest fo the layers follow a geometric distribution.
 double h_ = 0.6;                   
 char save_location[] = "./";
 
-#define nl_ 5  //the default number of layers if none are given as command line arguments
+#define nl_ 10  //the default number of layers if none are given as command line arguments
 #define g_ g
 
 double t_dim = 1;
@@ -55,6 +55,7 @@ event init (i = 0)
 #elif _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "number of openmp threads:%d\n", num_omp);
+  omp_set_num_threads(36);
 #endif
 
 }
@@ -75,7 +76,7 @@ int main(int argc, char *argv[])
   breaking = 0.1;
   CFL_H = .5;
   TOLERANCE = 10e-5;
-  //theta_H = 0.51;
+  //theta_H = 0.51
   run();
 }
 
@@ -124,7 +125,7 @@ event save_energy(i++)
 /**
 We use gnuplot to visualise the wave profile as the simulation
 runs and to generate a snapshot at $t=Tend$.*/
-
+#if 0
 void plot_profile (double t, FILE * fp)
 {
   fprintf (fp,
@@ -164,6 +165,8 @@ event gnuplot (t = Tend) {
            "set output 'snapshot.png'\n");
   plot_profile (t, fp);
 }
+
+#endif
 
 event show_progress(i++)
 {

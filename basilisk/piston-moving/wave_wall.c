@@ -76,7 +76,7 @@ void read_piston_data(){
   int _running=1;
   while(_running && count< piston_timesteps ){
     _running = fscanf(file, "%lf", &(piston_positions[count]));
-    piston_positions[count] /=100.; //convert to meters
+    piston_positions[count] /=-100.; //convert to meters
     count++;
   }
   fclose(file);

@@ -11,6 +11,9 @@ save_dir  = "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/
 nx = 1000 # number of points to save in x direction in the matlab matrix
 ny = 1000 # y dir
 filenames = glob.glob('vtu/ascii/*.vtu')
+
+if(type(filenames)==str):
+    filenames = [filenames]
 assert(len(filenames)>0)
 filenames.sort()
 

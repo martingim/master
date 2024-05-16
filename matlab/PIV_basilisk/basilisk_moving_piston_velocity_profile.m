@@ -8,8 +8,8 @@ load(timestep_name, "U", "X", "mask");
 y = X(:,:,2);
 x = X(:,:,1);
 
-mask(:,1:20)= 0;
-mask(:,300:end)= 0;
+mask(:,1:200)= 0;
+mask(:,600:end)= 0;
 crest_idx = find_crest_index_from_mask(y, mask)
 x(1,crest_idx)
 

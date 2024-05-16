@@ -1,7 +1,30 @@
-function [outputArg1,outputArg2] = basilisk_moving_piston_alpha(a, k, omega, h, timestep)
-%plots alpha for the moving piston basilisk results
+function [] = plot_basilisk_alpha(timestep,a, k, omega, h)
+%plot alpha = omega/(a*g*k)*(u.^2 + v.^2).^.5
+% vs y scaled of the basilisk results
+ 
+%load the basilisk results for the given timestep
+timestep_name = sprintf("basilisk_results/moving_piston_timestep_%d", timestep);
+load(timestep_name, "U", "X", "mask");
+y = X(:,:,2)-0.6;
+u = U(:,:,1);
+v = U(:,:,2);
+
+mask(:,1:200)= 0;
+mask(:,600:end)= 0;
+
+g = 9.81;
+alpha = omega/(a*g*k)*(u.^2 + v.^2).^.5;
 
 
+mean_alpha = zeros(size(alpha, 1), 1)*NaN;
+for i=1:size(alpha, 1)
+    horizontal_slice_alpha = alpha(i,:);
+    mean_alpha(i) = mean(horizontal_slice_alpha(mask(i,:)), 'omitnan');
+end
 
-
+crest_idx = find_crest_index_from_mask(y, mask);
+mean_alpha = mean_alpha(mask(:,crest_idx));
+crest_y = y(:,crest_idx);
+crest_y = crest_y(mask(:,crest_idx));
+plot(mean_alpha, crest_y/h, 'DisplayName',sprintf('ns step:%d', timestep))
 end

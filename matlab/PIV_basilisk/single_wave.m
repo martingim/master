@@ -88,12 +88,14 @@ save('params.mat', 'params')
 
 %% plot velocity under crest
 % timestep = 1;
-close all;
+
 plot_velocity_under_crest(run_number,1,image_params);
 %compare with basilisk results
 % MOVING PISTON
-timestep=0;
-basilisk_moving_piston_velocity_profile(timestep, 0.025, omega, h)
+timestep=0; 
+basilisk_moving_piston_velocity_profile(timestep, 0.0244, omega, h)
+timestep=1;
+basilisk_moving_piston_velocity_profile(timestep, 0.02, omega, h)
 % plot_basilisk_velocity_profile(timestep, a, omega, h)
 % timestep = 19;
 % plot_basilisk_velocity_profile(timestep, a, omega, h)
@@ -103,8 +105,12 @@ basilisk_moving_piston_velocity_profile(timestep, 0.025, omega, h)
 %% plot alpha
 
 plot_alpha(run_number, 1, image_params, true);
-timestep=171;
-basilisk_moving_piston_alpha(a, k, omega, h, timestep)
+timestep=0;
+basilisk_moving_piston_alpha(timestep, 0.0244, k, omega, h)
+
+timestep=1;
+basilisk_moving_piston_alpha(timestep, 0.025, k, omega, h)
+
 %compare with basilisk results
 % timestep = 0;
 % plot_basilisk_alpha(timestep, a, k, omega, h);
@@ -112,9 +118,9 @@ basilisk_moving_piston_alpha(a, k, omega, h, timestep)
 % plot_basilisk_alpha(timestep, a, k, omega, h);
 % timestep = 20;
 % plot_basilisk_alpha(timestep, a, k, omega, h);
-basilisk_multilayer_alpha(a, k, omega, h, 512, 20);
+% basilisk_multilayer_alpha(a, k, omega, h, 512, 20);
 % basilisk_multilayer_alpha(a, k, omega, h, 512, 21);
-basilisk_multilayer_alpha(a, k, omega, h, 512, 40);
+% basilisk_multilayer_alpha(a, k, omega, h, 512, 40);
 
 %% plot energy
 figure;

@@ -18,10 +18,10 @@
 #include "output_vtu_foreach.h"
 
 int LEVEL = 6;
-int MAXLEVEL = 13;
+int MAXLEVEL = 14;
 int padding = 0;
 double tank_length = 24.6; //length of the wave tank from the piston
-double l = 32; //the size of the domain later masked to match the length of the wave tank from the piston
+double l = 24.6; //the size of the domain later masked to match the length of the wave tank from the piston
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
 double uemax = 0.0001;
@@ -36,12 +36,12 @@ char piston_file[] = "fil3.dat";
 #define _h 0.6//water depth
 
 //piston parameters
-#define piston_starting_position 0.4
+#define piston_starting_position 0.2
 double piston_position = piston_starting_position; //the starting position of the piston (at rest leftmost position)
 double piston_height = 0.2;   //height of the piston above the still water level
 double piston_bottom_clearance = 0.0; //piston distance above bottom
-#define w .1 //width of the piston
-#define PISTON (0.1-(x>piston_position)-(x<piston_position-w)-(y<-_h+piston_bottom_clearance)-(y>piston_height)) //subtract conditions outside the piston
+#define w .2 //width of the piston
+#define PISTON piston_position-x //subtract conditions outside the piston
 scalar pstn[];
 //differences based on reading piston data from file or from function
 #if file_input    //reading data from file
@@ -57,6 +57,7 @@ double piston_amplitude = 0.0129;
 #define Piston_Position (piston_amplitude*(1-cos(t*omega)))
 #define U_X (piston_amplitude*omega*sin(t*omega))  //piston velocity from pos -cos(t*omega)
 #endif
+
 
 void mask_domain(){
   //mask away the top of the domain
@@ -105,10 +106,12 @@ int main() {
   DT = 0.01;
   u.t[bottom] = dirichlet(0.);
   u.n[bottom] = dirichlet(0.);
+  u.n[right] = dirichlet(0.);
+  u.t[right] = dirichlet(0.);
 #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
-  omp_set_num_threads(4);
+  //omp_set_num_threads(4);
   fprintf(stderr, "set openmp threads:%d\n", omp_get_max_threads());
 #endif
   run();
@@ -142,7 +145,7 @@ event init (i = 0) {
 The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
 */
-event piston (i++) {
+event piston (i++, first) {
 #if file_input
   piston_counter = floor(t*100);
   double counter_remainder = 0;
@@ -156,8 +159,8 @@ event piston (i++) {
 #endif
   fraction (pstn, PISTON);
   foreach() {
-    u.y[] *= (1 - pstn[]);
-    u.x[] = u.x[]*(1 - pstn[]) + pstn[]*U_X;
+    u.y[] = u.y[]*(1 - pstn[]);
+    u.x[] = pstn[]*U_X + u.x[]*(1 - pstn[]);
   }
   printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
 }
@@ -174,7 +177,8 @@ And to minimise the error in the velocity field.
  */
 event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, femax,1.0}, MAXLEVEL, LEVEL,padding);
-  unrefine ((x < -0.05)&&(level>6)); //unrefine the area to the left of the piston
+  unrefine ((x < piston_position-0.05)); //unrefine the area to the left of the piston
+  unrefine ((x > piston_position+0.1)&&(y<-0.4));
   unrefine (y>0.05);
 }
 

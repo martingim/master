@@ -13,18 +13,19 @@
 #include "two-phase.h"
 #include "navier-stokes/conserving.h"
 #include "tension.h"
-//#include "reduced.h"
+#include "embed.h"
+#include "reduced.h"
 
 #include "output_vtu_foreach.h"
 
 int LEVEL = 6;
-int MAXLEVEL = 14;
+int MAXLEVEL = 13;
 int padding = 0;
 double tank_length = 24.6; //length of the wave tank from the piston
 double l = 24.6; //the size of the domain later masked to match the length of the wave tank from the piston
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
-double uemax = 0.0001;
+double uemax = 0.01;
 double Tend = 30.;
 double probe_positions[]={8.00, 10.04, 10.75, 11.50};
 int n_probes = 4;
@@ -97,17 +98,19 @@ int main() {
   #endif
   mkdir("./vtu",0755);
   L0 = l;
-  f.sigma = 0.01;
-  rho1 = 1025;
-  rho2 = 1.225;
+  f.sigma = 0.078;
+  rho1 = 997;
+  rho2 = 1.204;
   mu1 = 8.9e-4; 
   mu2 = 17.4e-6;
+  G.y = - 9.81;
   N = 1 << LEVEL;
   DT = 0.01;
   u.t[bottom] = dirichlet(0.);
   u.n[bottom] = dirichlet(0.);
   u.n[right] = dirichlet(0.);
   u.t[right] = dirichlet(0.);
+  //u.n[top] = neumann(0.);
 #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
@@ -125,16 +128,16 @@ event init (i = 0) {
   int keep_refining=1;
   while (keep_refining){
     keep_refining = adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,femax, 1.}, MAXLEVEL, LEVEL,padding).nf;
-    foreach(){
-      pf[] = f[]*(-y)/10./1e-5;
-      p[] = pf[];
-    }
+    // foreach(){
+    //   pf[] = f[]*(-y)*rho1*9.81 + 1013.25;
+    //   p[] = pf[];
+    // }
     fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }
   unrefine ((x < -0.05)&&(level>6));
   foreach(){
-    pf[] = f[]*(-y)/10./1e-5;
+    pf[] = 0;
     p[] = pf[];
   }
   fraction (f, - y); //set the water level on the refined mesh
@@ -165,12 +168,6 @@ event piston (i++, first) {
   printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
 }
 
-event acceleration (i++) {
-  face vector av = a;
-  foreach_face(y)
-    av.y[] = -9.81;
-}
-
 /*
 The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
@@ -178,7 +175,7 @@ And to minimise the error in the velocity field.
 event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, femax,1.0}, MAXLEVEL, LEVEL,padding);
   unrefine ((x < piston_position-0.05)); //unrefine the area to the left of the piston
-  unrefine ((x > piston_position+0.1)&&(y<-0.4));
+  //unrefine ((x > piston_position+0.1)&&(y<-0.4));
   unrefine (y>0.05);
 }
 
@@ -210,12 +207,19 @@ event surface_probes(t+=0.01){
 
 //save unordered mesh
 event vtu(t+=.1){
-//event vtu(i++){
   printf("Saving vtu file\n");
   char filename[40];
   sprintf(filename, "%svtu/TIME-%04.0f", save_location, (t*100));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 }
+
+// event vtu(i++){
+//   printf("Saving vtu file\n");
+//   char filename[40];
+//   sprintf(filename, "%svtu/step-%04d", save_location, i);
+//   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
+// }
+
 
 /*
 simulation stopped at Tend

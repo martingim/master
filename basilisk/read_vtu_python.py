@@ -5,19 +5,25 @@ import numpy as np
 import scipy
 import glob
 import os
+import sys
 
-save_dir  = "/home/martin/Documents/master/matlab/PIV_basilisk/basilisk_results/"
+basilisk_dir = sys.argv[1]
+timestep = int(sys.argv[2])
+save_dir  = basilisk_dir+ "/vtu/matlab/"
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
 
 nx = 1000 # number of points to save in x direction in the matlab matrix
 ny = 1000 # y dir
-filenames = glob.glob('vtu/ascii/*.vtu')
+filenames = glob.glob(basilisk_dir + '/vtu/ascii/*.vtu')
 
 if(type(filenames)==str):
     filenames = [filenames]
 assert(len(filenames)>0)
 filenames.sort()
 
-i = 0
+i = timestep
+filenames = [filenames[i]]
 for filename in filenames:
     print('reading file :', filename)
     mesh = read(filename)
@@ -49,7 +55,10 @@ for filename in filenames:
     matlab_dict['X'] = interpolation_points
     matlab_dict['mask'] = interpolated_f>0.5
     
-    os.remove(save_dir + f"moving_piston_timestep_{i}.mat")
+    try:
+        os.remove(save_dir + f"moving_piston_timestep_{i}.mat")
+    except:
+        pass
     scipy.io.savemat(save_dir + f"moving_piston_timestep_{i}.mat", matlab_dict)
     
     i += 1

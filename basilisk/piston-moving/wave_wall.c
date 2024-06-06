@@ -12,15 +12,16 @@
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
 #include "navier-stokes/conserving.h"
-#include "tension.h"
+//#include "tension.h"
 #include "embed.h"
 #include "reduced.h"
 
 #include "output_vtu_foreach.h"
 
+int set_n_threads = 0; //0 use all available threads
 int LEVEL = 6;
-int MAXLEVEL = 13;
-int padding = 0;
+int MAXLEVEL = 11;
+int padding = 1;
 double tank_length = 24.6; //length of the wave tank from the piston
 double l = 24.6; //the size of the domain later masked to match the length of the wave tank from the piston
 double domain_height = 1.0; //the height of the simulation domain
@@ -37,12 +38,12 @@ char piston_file[] = "fil3.dat";
 #define _h 0.6//water depth
 
 //piston parameters
-#define piston_starting_position 0.2
-double piston_position = piston_starting_position; //the starting position of the piston (at rest leftmost position)
+#define piston_back_wall_offset 1. //the distance from the left of the domain to the front of the piston
+double piston_position = 0; //the starting position of the piston (at rest leftmost position)
 double piston_height = 0.2;   //height of the piston above the still water level
-double piston_bottom_clearance = 0.0; //piston distance above bottom
-#define w .2 //width of the piston
-#define PISTON piston_position-x //subtract conditions outside the piston
+double piston_bottom_clearance = 0.01; //piston distance above bottom
+#define piston_w .2 //width of the piston
+#define PISTON (0.1 -(piston_position<x) - (x<(piston_position-piston_w))-(y>piston_height)) //subtract conditions outside the piston
 scalar pstn[];
 //differences based on reading piston data from file or from function
 #if file_input    //reading data from file
@@ -63,7 +64,6 @@ double piston_amplitude = 0.0129;
 void mask_domain(){
   //mask away the top of the domain
   mask(y > domain_height - _h ? top : none);
-  mask(x > tank_length ? right : none);
 }
 
 #if file_input
@@ -92,13 +92,13 @@ void read_piston_data(){
 #endif
 
 int main() {
-  origin(-piston_starting_position, -_h);
+  origin(-piston_back_wall_offset, -_h);
   #if file_input
   read_piston_data();
   #endif
   mkdir("./vtu",0755);
   L0 = l;
-  f.sigma = 0.078;
+  //f.sigma = 0.078;
   rho1 = 997;
   rho2 = 1.204;
   mu1 = 8.9e-4; 
@@ -106,15 +106,17 @@ int main() {
   G.y = - 9.81;
   N = 1 << LEVEL;
   DT = 0.01;
-  u.t[bottom] = dirichlet(0.);
   u.n[bottom] = dirichlet(0.);
+  u.t[bottom] = dirichlet(0.);
+  u.n[left] = dirichlet(0.);
   u.n[right] = dirichlet(0.);
-  u.t[right] = dirichlet(0.);
-  //u.n[top] = neumann(0.);
+  u.n[top] = neumann(0.);
 #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
-  //omp_set_num_threads(4);
+  if (set_n_threads){  //set number of omp threads
+    omp_set_num_threads(set_n_threads);
+  }
   fprintf(stderr, "set openmp threads:%d\n", omp_get_max_threads());
 #endif
   run();
@@ -123,19 +125,18 @@ int main() {
 event init (i = 0) {
   init_grid (1 << (LEVEL));
   mask_domain();
+  u.n[top]  = neumann(0.);
+  p[top]    = dirichlet(0.);
+  pf[top]   = dirichlet(0.);
   fraction (f, - y); //set the water depth _h 
   fraction (pstn, PISTON); //set the piston fraction
   int keep_refining=1;
   while (keep_refining){
     keep_refining = adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,femax, 1.}, MAXLEVEL, LEVEL,padding).nf;
-    // foreach(){
-    //   pf[] = f[]*(-y)*rho1*9.81 + 1013.25;
-    //   p[] = pf[];
-    // }
     fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }
-  unrefine ((x < -0.05)&&(level>6));
+  unrefine ((x < -0.1)&&(level>6));
   foreach(){
     pf[] = 0;
     p[] = pf[];
@@ -174,9 +175,9 @@ And to minimise the error in the velocity field.
  */
 event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, femax,1.0}, MAXLEVEL, LEVEL,padding);
-  unrefine ((x < piston_position-0.05)); //unrefine the area to the left of the piston
-  //unrefine ((x > piston_position+0.1)&&(y<-0.4));
-  unrefine (y>0.05);
+  unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
+  //unrefine ((x > piston_position+0.1)&&(y<-0.4)); //unrefine the bottom
+  unrefine (y>0.1); //unrefine the air above 0.1
 }
 
 event surface_probes(t+=0.01){
@@ -206,12 +207,13 @@ event surface_probes(t+=0.01){
 }
 
 //save unordered mesh
-event vtu(t+=.1){
+event vtu(t+=1){
   printf("Saving vtu file\n");
   char filename[40];
   sprintf(filename, "%svtu/TIME-%04.0f", save_location, (t*100));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 }
+
 
 // event vtu(i++){
 //   printf("Saving vtu file\n");

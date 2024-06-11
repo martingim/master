@@ -20,14 +20,14 @@
 
 int set_n_threads = 0; //0 use all available threads
 int LEVEL = 6;
-int MAXLEVEL = 14;
+int MAXLEVEL = 12;
 int padding = 2;
 double tank_length = 24.6; //length of the wave tank from the piston
 double l = 24.6; //the size of the domain later masked to match the length of the wave tank from the piston
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
 double uemax = 0.01;
-double pemax = 0.1;
+double pemax = 10.;
 double Tend = 30.;
 double probe_positions[]={8.00, 10.04, 10.75, 11.50};
 int n_probes = 4;

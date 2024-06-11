@@ -20,13 +20,14 @@
 
 int set_n_threads = 0; //0 use all available threads
 int LEVEL = 6;
-int MAXLEVEL = 11;
-int padding = 1;
+int MAXLEVEL = 14;
+int padding = 2;
 double tank_length = 24.6; //length of the wave tank from the piston
 double l = 24.6; //the size of the domain later masked to match the length of the wave tank from the piston
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.1;
 double uemax = 0.01;
+double pemax = 0.1;
 double Tend = 30.;
 double probe_positions[]={8.00, 10.04, 10.75, 11.50};
 int n_probes = 4;
@@ -101,7 +102,7 @@ int main() {
   //f.sigma = 0.078;
   rho1 = 997;
   rho2 = 1.204;
-  mu1 = 8.9e-4; 
+  mu1 = 8.9e-4;
   mu2 = 17.4e-6;
   G.y = - 9.81;
   N = 1 << LEVEL;
@@ -128,7 +129,7 @@ event init (i = 0) {
   u.n[top]  = neumann(0.);
   p[top]    = dirichlet(0.);
   pf[top]   = dirichlet(0.);
-  fraction (f, - y); //set the water depth _h 
+  fraction (f, - y); //set the water depth _h
   fraction (pstn, PISTON); //set the piston fraction
   int keep_refining=1;
   while (keep_refining){
@@ -155,7 +156,7 @@ event piston (i++, first) {
   double counter_remainder = 0;
   counter_remainder = t*100.-piston_counter;
   piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
-  printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
+  //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
   U_X = (piston_position-piston_position_p)/dt;
   piston_position_p = piston_position;
 #else
@@ -166,7 +167,7 @@ event piston (i++, first) {
     u.y[] = u.y[]*(1 - pstn[]);
     u.x[] = pstn[]*U_X + u.x[]*(1 - pstn[]);
   }
-  printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
+  //printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
 }
 
 /*
@@ -174,7 +175,7 @@ The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
  */
 event adapt (i++){
-  adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, femax,1.0}, MAXLEVEL, LEVEL,padding);
+  adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, pemax, femax}, MAXLEVEL, LEVEL,padding);
   unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
   //unrefine ((x > piston_position+0.1)&&(y<-0.4)); //unrefine the bottom
   unrefine (y>0.1); //unrefine the air above 0.1
@@ -232,6 +233,6 @@ event show_progress(i++)
 {
   float progress = 0;
   progress = t /Tend;
-  printf("t=%.3f, i=%d, dt=%g, ", t, i, dt);
-  printf("%.2f%%\n", progress*100);
+  printf("t=%02.3f, i=%04d, dt=%.3g\r", t, i, dt);
+  //printf("%.2f%%\r", progress*100);
 }

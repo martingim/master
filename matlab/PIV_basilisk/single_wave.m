@@ -90,6 +90,7 @@ save('params.mat', 'params')
 % timestep = 1;
 
 plot_velocity_under_crest(run_number,1,image_params);
+%%
 %compare with basilisk results
 % MOVING PISTON
 timestep=0; 

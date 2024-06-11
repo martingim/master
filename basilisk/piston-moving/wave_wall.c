@@ -1,6 +1,6 @@
 /*
  * based on http://basilisk.fr/sandbox/Antoonvh/wave_wall.c
- * can read piston position data from file. Set up for file with 100hz sample rate 
+ * reads piston position data from file.
  */
 #include <sys/stat.h>
 #include <stdio.h>
@@ -22,52 +22,41 @@ int set_n_threads = 0; //0 use all available threads
 int LEVEL = 6;
 int MAXLEVEL = 12;
 int padding = 2;
-double tank_length = 24.6; //length of the wave tank from the piston
-double l = 24.6; //the size of the domain later masked to match the length of the wave tank from the piston
+#define _h 0.6//water depth
+double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
-double femax = 0.1;
+double femax = 0.1;  //TODO change these to be based on LEVEL
 double uemax = 0.01;
-double pemax = 10.;
+double pemax = 15.;
 double Tend = 30.;
 double probe_positions[]={8.00, 10.04, 10.75, 11.50};
 int n_probes = 4;
 vector h[]; //scalar field of the distance from the surface, using heights.h
 char save_location[] = "./"; //the location to save the vtu files
-#define file_input 1 //whether the piston positions are read from file or given by function
+
+//piston file 
 char piston_file[] = "fil3.dat";
-
-#define _h 0.6//water depth
-
-//piston parameters
-#define piston_back_wall_offset 1. //the distance from the left of the domain to the front of the piston
-double piston_position = 0; //the starting position of the piston (at rest leftmost position)
-double piston_height = 0.2;   //height of the piston above the still water level
-double piston_bottom_clearance = 0.01; //piston distance above bottom
-#define piston_w .2 //width of the piston
-#define PISTON (0.1 -(piston_position<x) - (x<(piston_position-piston_w))-(y>piston_height)) //subtract conditions outside the piston
-scalar pstn[];
-//differences based on reading piston data from file or from function
-#if file_input    //reading data from file
+int file_samplerate = 100; //the samplerate of the piston position file
+#define piston_timesteps 10000//the number of timesteps in the piston file
 int piston_counter;
-#define piston_timesteps 10000
 double piston_positions[piston_timesteps];
-double piston_time[piston_timesteps];
-double piston_position_p; //previous piston position
+double piston_position = 0; //the starting position of the piston
+double piston_position_p; //piston position at the previous timestep
 double U_X = 0.; //the speed of the piston
-#else   //piston data from function
-double omega = 8.95;
-double piston_amplitude = 0.0129;
-#define Piston_Position (piston_amplitude*(1-cos(t*omega)))
-#define U_X (piston_amplitude*omega*sin(t*omega))  //piston velocity from pos -cos(t*omega)
-#endif
-
+//piston parameters 
+#define piston_back_wall_offset 1. //the distance from the left of the domain to the front of the piston
+double piston_height = 0.2;   //height of the piston above the still water level
+double piston_bottom_clearance = 0.00; //piston distance above bottom
+#define piston_w .2 //width of the piston
+#define PISTON (1 -(piston_position<x) - (x<(piston_position-piston_w))-(y>piston_height)) //subtract conditions outside the piston
+scalar pstn[];
 
 void mask_domain(){
   //mask away the top of the domain
   mask(y > domain_height - _h ? top : none);
+  //add masking the horizontal length
 }
 
-#if file_input
 void read_piston_data(){
   int count = 0;
   FILE *file;
@@ -90,14 +79,15 @@ void read_piston_data(){
   piston_position_p = piston_positions[0];
   piston_position = piston_positions[0];
 }
-#endif
 
 int main() {
-  origin(-piston_back_wall_offset, -_h);
-  #if file_input
-  read_piston_data();
-  #endif
   mkdir("./vtu",0755);
+  read_piston_data();
+  init_grid (1 << (LEVEL));
+  mask_domain();
+  origin(-piston_back_wall_offset, -_h);
+  
+
   L0 = l;
   //f.sigma = 0.078;
   rho1 = 997;
@@ -107,11 +97,18 @@ int main() {
   G.y = - 9.81;
   N = 1 << LEVEL;
   DT = 0.01;
+
   u.n[bottom] = dirichlet(0.);
   u.t[bottom] = dirichlet(0.);
-  u.n[left] = dirichlet(0.);
+
+  u.n[left] = neumann(0.);
   u.n[right] = dirichlet(0.);
+
   u.n[top] = neumann(0.);
+  p[top]    = dirichlet(0.);
+  pf[top]   = dirichlet(0.);
+  
+
 #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
@@ -124,11 +121,7 @@ int main() {
 }
 
 event init (i = 0) {
-  init_grid (1 << (LEVEL));
-  mask_domain();
-  u.n[top]  = neumann(0.);
-  p[top]    = dirichlet(0.);
-  pf[top]   = dirichlet(0.);
+  
   fraction (f, - y); //set the water depth _h
   fraction (pstn, PISTON); //set the piston fraction
   int keep_refining=1;
@@ -151,17 +144,13 @@ The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
 */
 event piston (i++, first) {
-#if file_input
-  piston_counter = floor(t*100);
+  piston_counter = floor(t*file_samplerate);
   double counter_remainder = 0;
   counter_remainder = t*100.-piston_counter;
   piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
   //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
   U_X = (piston_position-piston_position_p)/dt;
   piston_position_p = piston_position;
-#else
-  piston_position = Piston_Position;
-#endif
   fraction (pstn, PISTON);
   foreach() {
     u.y[] = u.y[]*(1 - pstn[]);
@@ -178,7 +167,7 @@ event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, pemax, femax}, MAXLEVEL, LEVEL,padding);
   unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
   //unrefine ((x > piston_position+0.1)&&(y<-0.4)); //unrefine the bottom
-  unrefine (y>0.1); //unrefine the air above 0.1
+  unrefine ((x>piston_position)&&(f[]<0.01)); //unrefine the air
 }
 
 event surface_probes(t+=0.01){

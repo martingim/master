@@ -1,6 +1,6 @@
 /*
  * based on http://basilisk.fr/sandbox/Antoonvh/wave_wall.c
- * reads piston position data from file.
+ * can read piston position data from file. Set up for file with 100hz sample rate 
  */
 #include <sys/stat.h>
 #include <stdio.h>
@@ -11,7 +11,7 @@
 #include "output.h"
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
-#include "navier-stokes/conserving.h"
+//#include "navier-stokes/conserving.h"
 //#include "tension.h"
 #include "embed.h"
 #include "reduced.h"
@@ -20,7 +20,7 @@
 
 int set_n_threads = 0; //0 use all available threads
 int LEVEL = 6;
-int MAXLEVEL = 12;
+int max_LEVEL = 13;
 int padding = 2;
 #define _h 0.6//water depth
 double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
@@ -51,12 +51,6 @@ double piston_bottom_clearance = 0.00; //piston distance above bottom
 #define PISTON (1 -(piston_position<x) - (x<(piston_position-piston_w))-(y>piston_height)) //subtract conditions outside the piston
 scalar pstn[];
 
-void mask_domain(){
-  //mask away the top of the domain
-  mask(y > domain_height - _h ? top : none);
-  //add masking the horizontal length
-}
-
 void read_piston_data(){
   int count = 0;
   FILE *file;
@@ -80,14 +74,17 @@ void read_piston_data(){
   piston_position = piston_positions[0];
 }
 
-int main() {
-  mkdir("./vtu",0755);
-  read_piston_data();
-  init_grid (1 << (LEVEL));
-  mask_domain();
-  origin(-piston_back_wall_offset, -_h);
-  
+void mask_domain(){
+  //mask away the top of the domain
+  mask(y > domain_height - _h ? top : none);
+  u.n[top]  = neumann(0.);
+  p[top]    = dirichlet(0.);
+  pf[top]   = dirichlet(0.);
+}
 
+int main() {
+  read_piston_data();
+  mkdir("./vtu",0755);
   L0 = l;
   //f.sigma = 0.078;
   rho1 = 997;
@@ -97,18 +94,11 @@ int main() {
   G.y = - 9.81;
   N = 1 << LEVEL;
   DT = 0.01;
-
   u.n[bottom] = dirichlet(0.);
   u.t[bottom] = dirichlet(0.);
-
-  u.n[left] = neumann(0.);
+  u.n[left] = dirichlet(0.);
   u.n[right] = dirichlet(0.);
-
   u.n[top] = neumann(0.);
-  p[top]    = dirichlet(0.);
-  pf[top]   = dirichlet(0.);
-  
-
 #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
@@ -121,12 +111,12 @@ int main() {
 }
 
 event init (i = 0) {
-  
+  origin(-piston_back_wall_offset, -_h);
+  mask_domain();
+
   fraction (f, - y); //set the water depth _h
   fraction (pstn, PISTON); //set the piston fraction
-  int keep_refining=1;
-  while (keep_refining){
-    keep_refining = adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,femax, 1.}, MAXLEVEL, LEVEL,padding).nf;
+  while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,femax, 1.}, max_LEVEL, LEVEL,padding).nf){
     fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }
@@ -135,8 +125,6 @@ event init (i = 0) {
     pf[] = 0;
     p[] = pf[];
   }
-  fraction (f, - y); //set the water level on the refined mesh
-  fraction (pstn, PISTON); //set the piston fraction on the refined mesh
 }
 
 /**
@@ -144,7 +132,7 @@ The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
 */
 event piston (i++, first) {
-  piston_counter = floor(t*file_samplerate);
+  piston_counter = floor(t*100);
   double counter_remainder = 0;
   counter_remainder = t*100.-piston_counter;
   piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
@@ -164,7 +152,7 @@ The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
  */
 event adapt (i++){
-  adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, pemax, femax}, MAXLEVEL, LEVEL,padding);
+  adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, pemax, femax}, max_LEVEL, LEVEL,padding);
   unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
   //unrefine ((x > piston_position+0.1)&&(y<-0.4)); //unrefine the bottom
   unrefine ((x>piston_position)&&(f[]<0.01)); //unrefine the air
@@ -197,13 +185,12 @@ event surface_probes(t+=0.01){
 }
 
 //save unordered mesh
-event vtu(t+=1){
+event vtu(t+=1, last){
   printf("Saving vtu file\n");
   char filename[40];
   sprintf(filename, "%svtu/TIME-%04.0f", save_location, (t*100));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 }
-
 
 // event vtu(i++){
 //   printf("Saving vtu file\n");
@@ -220,8 +207,8 @@ event stop (t = Tend);
 
 event show_progress(i++)
 {
-  float progress = 0;
-  progress = t /Tend;
-  printf("t=%02.3f, i=%04d, dt=%.3g\r", t, i, dt);
+  printf("t=%02.3f, i=%04d, dt=%.3g\n", t, i, dt);
+  //float progress = 0;
+  //progress = t /Tend;
   //printf("%.2f%%\r", progress*100);
 }

@@ -11,23 +11,23 @@
 #include "output.h"
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
-//#include "navier-stokes/conserving.h"
+#include "navier-stokes/conserving.h"
 //#include "tension.h"
 #include "embed.h"
 #include "reduced.h"
 
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 0; //0 use all available threads
+int set_n_threads = 4; //0 use all available threads
 int LEVEL = 6;
-int max_LEVEL = 13;
-int padding = 2;
+int max_LEVEL = 11;
+int padding = 1;
 #define _h 0.6//water depth
 double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
-double femax = 0.1;  //TODO change these to be based on LEVEL
+double femax = 0.01;  //TODO change these to be based on LEVEL
 double uemax = 0.01;
-double pemax = 15.;
+double pemax = .1;
 double Tend = 30.;
 double probe_positions[]={8.00, 10.04, 10.75, 11.50};
 int n_probes = 4;
@@ -113,7 +113,8 @@ int main() {
 event init (i = 0) {
   origin(-piston_back_wall_offset, -_h);
   mask_domain();
-
+  //refine((fabs(y)<l/N*0.49)&&(level<=max_LEVEL));
+  //mvtu(42);
   fraction (f, - y); //set the water depth _h
   fraction (pstn, PISTON); //set the piston fraction
   while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,femax, 1.}, max_LEVEL, LEVEL,padding).nf){
@@ -152,10 +153,11 @@ The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
  */
 event adapt (i++){
-  adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax, uemax, femax, pemax, femax}, max_LEVEL, LEVEL,padding);
+  adapt_wavelet_leave_interface({u.x, u.y},{pstn,pf,f},(double[]){uemax, uemax, femax, pemax, femax}, max_LEVEL, LEVEL,padding);
   unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
-  //unrefine ((x > piston_position+0.1)&&(y<-0.4)); //unrefine the bottom
-  unrefine ((x>piston_position)&&(f[]<0.01)); //unrefine the air
+  unrefine ((x > piston_position+0.1)&&(y<-0.4)); //unrefine the bottom
+  //unrefine ((x>piston_position)&&(f[]<0.01)); //unrefine the air
+  unrefine ((y>0.1));
 }
 
 event surface_probes(t+=0.01){
@@ -185,19 +187,26 @@ event surface_probes(t+=0.01){
 }
 
 //save unordered mesh
-event vtu(t+=1, last){
-  printf("Saving vtu file\n");
-  char filename[40];
-  sprintf(filename, "%svtu/TIME-%04.0f", save_location, (t*100));
-  output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
-}
-
-// event vtu(i++){
+// event vtu(t+=.1, last){
 //   printf("Saving vtu file\n");
 //   char filename[40];
-//   sprintf(filename, "%svtu/step-%04d", save_location, i);
+//   sprintf(filename, "%svtu/TIME-%04.0f", save_location, (t*100));
 //   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 // }
+
+
+// void mvtu(int s){
+//   printf("Saving vtu file\n");
+//   char filename[40];
+//   sprintf(filename, "%svtu/TIME-%d", save_location, s);
+//   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
+// }
+event vtu(i++){
+  printf("Saving vtu file\n");
+  char filename[40];
+  sprintf(filename, "%svtu/step-%05d", save_location, i);
+  output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
+}
 
 
 /*

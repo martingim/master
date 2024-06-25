@@ -20,7 +20,7 @@
 
 int set_n_threads = 4; //0 use all available threads
 int LEVEL = 6;
-int max_LEVEL = 11;
+int max_LEVEL = 13;
 int padding = 1;
 #define _h 0.6//water depth
 double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
@@ -28,7 +28,7 @@ double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.01;  //TODO change these to be based on LEVEL
 double uemax = 0.01;
 double pemax = .1;
-double Tend = 30.;
+double Tend = 45.;
 double probe_positions[]={8.00, 10.04, 10.75, 11.50};
 int n_probes = 4;
 vector h[]; //scalar field of the distance from the surface, using heights.h
@@ -154,6 +154,7 @@ And to minimise the error in the velocity field.
  */
 event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y},{pstn,pf,f},(double[]){uemax, uemax, femax, pemax, femax}, max_LEVEL, LEVEL,padding);
+  fraction(pstn, PISTON);
   unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
   unrefine ((x > piston_position+0.1)&&(y<-0.4)); //unrefine the bottom
   //unrefine ((x>piston_position)&&(f[]<0.01)); //unrefine the air
@@ -187,12 +188,12 @@ event surface_probes(t+=0.01){
 }
 
 //save unordered mesh
-// event vtu(t+=.1, last){
-//   printf("Saving vtu file\n");
-//   char filename[40];
-//   sprintf(filename, "%svtu/TIME-%04.0f", save_location, (t*100));
-//   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
-// }
+event vtu(t+=1, last){
+  printf("Saving vtu file\n");
+  char filename[40];
+  sprintf(filename, "%svtu/TIME-%04.0f", save_location, (t*100));
+  output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
+}
 
 
 // void mvtu(int s){
@@ -201,12 +202,13 @@ event surface_probes(t+=0.01){
 //   sprintf(filename, "%svtu/TIME-%d", save_location, s);
 //   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 // }
-event vtu(i++){
-  printf("Saving vtu file\n");
-  char filename[40];
-  sprintf(filename, "%svtu/step-%05d", save_location, i);
-  output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
-}
+
+// event vtu(i++){
+//   printf("Saving vtu file\n");
+//   char filename[40];
+//   sprintf(filename, "%svtu/step-%05d", save_location, i);
+//   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
+// }
 
 
 /*

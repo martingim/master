@@ -18,14 +18,14 @@
 
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 4; //0 use all available threads
+int set_n_threads = 3; //0 to use all available threads
 int LEVEL = 6;
 int max_LEVEL = 13;
 int padding = 1;
 #define _h 0.6//water depth
 double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
-double femax = 0.01;  //TODO change these to be based on LEVEL
+double femax = 0.01;
 double uemax = 0.01;
 double pemax = .1;
 double Tend = 45.;
@@ -35,7 +35,7 @@ vector h[]; //scalar field of the distance from the surface, using heights.h
 char save_location[] = "./"; //the location to save the vtu files
 
 //piston file 
-char piston_file[] = "fil3.dat";
+char piston_file[] = "piston_files/5/fil3.dat";
 int file_samplerate = 100; //the samplerate of the piston position file
 #define piston_timesteps 10000//the number of timesteps in the piston file
 int piston_counter;
@@ -117,7 +117,7 @@ event init (i = 0) {
   //mvtu(42);
   fraction (f, - y); //set the water depth _h
   fraction (pstn, PISTON); //set the piston fraction
-  while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,femax, 1.}, max_LEVEL, LEVEL,padding).nf){
+  while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,pemax,femax, femax}, max_LEVEL, LEVEL,padding).nf){
     fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }

@@ -117,7 +117,7 @@ event init (i = 0) {
   //mvtu(42);
   fraction (f, - y); //set the water depth _h
   fraction (pstn, PISTON); //set the piston fraction
-  while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,pemax,femax, femax}, max_LEVEL, LEVEL,padding).nf){
+  while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL, LEVEL,padding).nf){
     fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }

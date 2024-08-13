@@ -30,25 +30,49 @@ title("plot of the paddle files");
 
 %% plot with basilisk results
 close all
-basilisk_folders = [];
-titles = [];
+
 %half amplitude piston movement
 %basilisk_folder = "~/Documents/master/basilisk_results/a_154/LEVEL15_embed_reduced/"; lab_run_number=5;
 %basilisk_folder = "~/Documents/master/basilisk_results/a_154/LEVEL13_embed_reduced/"; lab_run_number=5;
 %basilisk_folder = "~/Documents/master/basilisk_results/a_154/LEVEL14/"; lab_run_number=5;
 
 %308 piston amplitude
-lab_run_number = 1;
-%basilisk_folder = "~/Documents/master/basilisk_results/a_308/LEVEL/"; lab_run_number=2;
-%normal amplitude piston movement
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk_results/a_308/LEVEL10/"]; titles = [titles "LEVEL 10, 2.4 cm cells"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk_results/a_308/LEVEL11/"]; titles = [titles "LEVEL 11, 1.2 cm cells"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk_results/a_308/LEVEL12/"]; titles = [titles "LEVEL 12, 0.6 cm cells"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk_results/a_308/LEVEL13/"]; titles = [titles "LEVEL 13, 0.3 cm cells"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk_results/a_308/LEVEL13_2/"]; titles = [titles "LEVEL 13_2"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk_results/a_308/LEVEL13_wavetank/"]; titles = [titles "LEVEL 13 not reduced"];
+%% results for the wave from run number 5
+lab_run_number = 5;
+basilisk_folders = [];
+titles = [];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL12/"]; titles = [titles "LEVEL 12"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL13_2pad/"]; titles = [titles "LEVEL 13 2 padding"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL13_refined_bottom/"]; titles = [titles "LEVEL 13 refined bottom"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL13_unrefined_bottom/"]; titles = [titles "LEVEL 13 unrefined bottom"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14/"]; titles = [titles "LEVEL 14"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_1pad/"]; titles = [titles "LEVEL 14 1 pad"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL15/"]; titles = [titles "LEVEL 15"];
 
-basilisk_folder = "~/Documents/master/basilisk_results/a_308/LEVEL13_no_tension/piston-moving/"; lab_run_number=1;
+%% run 4 wave results
+lab_run_number = 4;
+basilisk_folders = [];
+titles = [];
+basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL12/"]; titles = [titles "LEVEL 12"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL13/"]; titles = [titles "LEVEL 13"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL13_2pad/"]; titles = [titles "LEVEL 13 2 padding"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL14_1pad/"]; titles = [titles "LEVEL 14 1 padding"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL14_tension/"]; titles = [titles "LEVEL 14 with surface tension"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL_14/"]; titles = [titles "LEVEL 14"];
+
+%% run 1 wave results
+lab_run_number = 1;
+basilisk_folders = [];
+titles = [];
+basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL12/"]; titles = [titles "LEVEL 12"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL13/"]; titles = [titles "LEVEL 13"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL13_2pad/"]; titles = [titles "LEVEL 13 2 padding"];
+
+%% plot all the sensors for one run
+%basilisk_folder = "~/Documents/master/basilisk_results/a_308/LEVEL13_no_tension/piston-moving/"; lab_run_number=1;
+%basilisk_folder = "~/Documents/master/basilisk/piston-moving/"; lab_run_number=5;
+run_number = 1;
+basilisk_folder = basilisk_folders(run_number);
 
 
 omega = 8.95; 
@@ -88,10 +112,10 @@ for sensor=1:4
     %plot(0:T:60,0, 'x')
 end
 
-%% plot sensor 1 for different basilisk runs
+%% plot sensor 1 for different basilisk runs in different plots
 sensor = 1;
 figure;
-tiledlayout(6,1)
+tiledlayout(size(basilisk_folders, 2),1)
 
 for i=1:size(basilisk_folders, 2)
     basilisk_folder = basilisk_folders(i);
@@ -115,6 +139,30 @@ for i=1:size(basilisk_folders, 2)
     %mark the period
     %plot(0:T:60,0, 'x')
 end
+%% plot sensor 1 for the results in basilisk_folders in the same plot
+sensor=1;
+figure;
+hold on
+
+%plot the lab results
+col = sensor+2;
+max(file(:,col)) - min(file(:,col))/2;
+plot(t, file(:,col)-file(1,col), '--', 'DisplayName','surface probe')
+
+
+for i=1:size(basilisk_folders, 2)
+    basilisk_folder = basilisk_folders(i);
+    %plot the basilisk results
+    surface_probes = load(append(basilisk_folder, "surface_probes.csv"));
+    plot(surface_probes(:,1), surface_probes(:,sensor+1),'DisplayName',titles(i));
+    xlabel('t[s]')
+    ylabel('surface eleveation[m]')
+    xlim([0 30])
+    %mark the period
+    %plot(0:T:60,0, 'x')
+end
+legend();
+
 %%
 figure;
 hold on;

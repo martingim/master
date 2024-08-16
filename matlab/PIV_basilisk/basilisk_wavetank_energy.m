@@ -1,23 +1,33 @@
+
 figure;
 hold on;
 basilisk_folders = [];
 titles = [];
-%% run 5 test refineparam
+%% run 5 
+%test refineparam
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_refineparam1/"];     titles = [titles "LEVEL 14 refineparam 1"];
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_refineparam01/"];    titles = [titles "LEVEL 14 refineparam 0.1"];
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_refineparam001/"];   titles = [titles "LEVEL 14 refineparam 0.01"];
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_refineparam0001/"];  titles = [titles "run 5 LEVEL 14 refineparam 0.001"];
 
+%test levels
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL15/"];  titles = [titles "run 5 LEVEL 15"];
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_refineparam0001/"];  titles = [titles "run 5 LEVEL 14 refineparam 0.001"];
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL13_refineparam0001/"];  titles = [titles "run 5 LEVEL 13 refineparam 0.001"];
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL12/"];  titles = [titles "run 5 LEVEL 12"];
 %% run 1
+%test levels
 basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL12/"];  titles = [titles "run 1 LEVEL 12"];
 basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL13/"];  titles = [titles "run 1 LEVEL 13"];
 basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL13_2pad/"];  titles = [titles "run 1 LEVEL 13 2pad"];
 
+%% run 4
+%test levels
+basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL12/"];  titles = [titles "run 4 LEVEL 12"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL13/"];  titles = [titles "run 4 LEVEL 13"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL14/"];  titles = [titles "run 4 LEVEL 14"];
 
+%%
 
 timestep = 25;
 omega = 8.95;

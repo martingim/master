@@ -16,10 +16,12 @@ u_3 = u1+u2+u3;
 w_3 = w1+w2+w3; 
 alpha = omega/(a*g*Result.k)*(u.^2+w.^2).^.5;
 alpha_3 = omega/(a*g*Result.k)*(u_3.^2+w_3.^2).^.5;
+alpha_1 = omega/(a*g*Result.k)*(u1.^2+w1.^2).^.5;
 if plot_figure
     hold on
-    plot(alpha, z/h, 'DisplayName',"stokes 5th theoretical")
-    plot(alpha_3, z/h, 'DisplayName',"stokes 3rd theoretical")
+    plot(alpha, z/h, 'DisplayName',"Stokes 5th theoretical")
+    plot(alpha_3, z/h, 'DisplayName',"Stokes 3rd theoretical")
+    plot(alpha_1, z/h, 'DisplayName', "Stokes linear theoretical")
 end
 k = Result.k;
 end

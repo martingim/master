@@ -30,14 +30,8 @@ title("plot of the paddle files");
 
 %% plot with basilisk results
 close all
-
-%half amplitude piston movement
-%basilisk_folder = "~/Documents/master/basilisk_results/a_154/LEVEL15_embed_reduced/"; lab_run_number=5;
-%basilisk_folder = "~/Documents/master/basilisk_results/a_154/LEVEL13_embed_reduced/"; lab_run_number=5;
-%basilisk_folder = "~/Documents/master/basilisk_results/a_154/LEVEL14/"; lab_run_number=5;
-
-%308 piston amplitude
 %% results for the wave from run number 5
+%half amplitude piston movement
 lab_run_number = 5;
 basilisk_folders = [];
 titles = [];
@@ -49,7 +43,22 @@ basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14/"]; title
 basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_1pad/"]; titles = [titles "LEVEL 14 1 pad"];
 basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL15/"]; titles = [titles "LEVEL 15"];
 
+%% wave 5 testing refinement parameters
+%half amplitude piston movement
+lab_run_number = 5;
+basilisk_folders = [];
+titles = [];
+% basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL13_refineparam1/"]; titles = [titles "LEVEL 13 refineparam 1"];
+% basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL13_refineparam01/"]; titles = [titles "LEVEL 13 refineparam 0.1"];
+% basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL13_refineparam001/"]; titles = [titles "LEVEL 13 refineparam 0.01"];
+% basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL13_refineparam0001/"]; titles = [titles "LEVEL 13 refineparam 0.001"];
+% basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14/"]; titles = [titles "LEVEL 14 refineparam 1"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_refineparam1/"]; titles = [titles "LEVEL 14 refineparam 1"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_refineparam01/"]; titles = [titles "LEVEL 14 refineparam 0.1"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_refineparam001/"]; titles = [titles "LEVEL 14 refineparam 0.01"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_refineparam0001/"]; titles = [titles "LEVEL 14 refineparam 0.001"];
 %% run 4 wave results
+%double amplitude piston movement
 lab_run_number = 4;
 basilisk_folders = [];
 titles = [];
@@ -61,6 +70,7 @@ basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL14_tension/"
 basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL_14/"]; titles = [titles "LEVEL 14"];
 
 %% run 1 wave results
+%standard piston amplitude
 lab_run_number = 1;
 basilisk_folders = [];
 titles = [];

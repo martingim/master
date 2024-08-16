@@ -23,7 +23,6 @@ assert(len(filenames)>0)
 filenames.sort()
 
 i = timestep
-filenames = [filenames[i]]
 for filename in filenames:
     print('reading file :', filename)
     mesh = read(filename)
@@ -33,7 +32,6 @@ for filename in filenames:
     X = mean(points[cell_points],axis=1)[:,0]
     Y = mean(points[cell_points],axis=1)[:,1]
     center_points = np.stack([X, Y], axis=1)
-
     
     # get the data for the center of the cells
     cellData = mesh.cell_data
@@ -53,7 +51,7 @@ for filename in filenames:
     matlab_dict = {}
     matlab_dict['U'] = interpolated_U
     matlab_dict['X'] = interpolation_points
-    matlab_dict['mask'] = interpolated_f>0.5
+    matlab_dict['mask'] = interpolated_f>0.9
     
     try:
         os.remove(save_dir + f"moving_piston_timestep_{i}.mat")
@@ -62,12 +60,3 @@ for filename in filenames:
     scipy.io.savemat(save_dir + f"moving_piston_timestep_{i}.mat", matlab_dict)
     
     i += 1
-
-# print(interpolated_U[interpolated_f>0.5])
-# print(interpolated_U.shape)
-# idx = 256
-# plt.figure()
-# while(idx<300):
-#     plt.plot(interpolated_U[:,idx,0], interpolation_points[:,idx,1])
-#     idx += 1
-# plt.show()

@@ -1,4 +1,3 @@
-
 figure;
 hold on;
 basilisk_folders = [];
@@ -19,7 +18,7 @@ titles = [];
 %test levels
 basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL12/"];  titles = [titles "run 1 LEVEL 12"];
 basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL13/"];  titles = [titles "run 1 LEVEL 13"];
-basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL13_2pad/"];  titles = [titles "run 1 LEVEL 13 2pad"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL14/"];  titles = [titles "run 1 LEVEL 14"];
 
 %% run 4
 %test levels
@@ -75,12 +74,14 @@ for i=1:size(basilisk_folders, 2)
     %plot 5th order stokes alpha
     if i==1
         [k, ~,~,~] = Stokes5th_alpha(a, omega,h,true);
+        k*a
     else
         [k, ~,~,~] = Stokes5th_alpha(a, omega,h,false);
+        k*a
     end
     % plot the energy from the basilisk results
-    x_start = 10; %where to plot the mean kinetic energy from and to
-    x_end = 12;
+    x_start = 7.5; %where to plot the mean kinetic energy from and to
+    x_end = 8.5;
     
     
     mask(X(:,:,1)<x_start)= 0;

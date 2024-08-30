@@ -20,7 +20,7 @@
 
 int set_n_threads = 3; //0 to use all available threads
 int LEVEL = 6;
-int max_LEVEL = 13;
+int max_LEVEL = 12 //Default level if none is given as command line argument
 int padding = 1;
 #define _h 0.6//water depth
 double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
@@ -35,7 +35,8 @@ vector h[]; //scalar field of the distance from the surface, using heights.h
 char save_location[] = "./"; //the location to save the vtu files
 
 //piston file 
-char piston_file[] = "piston_files/5/fil3.dat";
+int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
+char piston_file[40];
 int file_samplerate = 100; //the samplerate of the piston position file
 #define piston_timesteps 10000//the number of timesteps in the piston file
 int piston_counter;
@@ -82,7 +83,15 @@ void mask_domain(){
   pf[top]   = dirichlet(0.);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+
+  if (argc>1)
+    LEVEL = atoi(argv[1]);
+    if (argc>2)
+      run_number = atoi(argv[2]);
+  
+  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
+  printf(piston_file);
   read_piston_data();
   mkdir("./vtu",0755);
   L0 = l;

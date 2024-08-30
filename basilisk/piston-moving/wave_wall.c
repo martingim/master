@@ -86,7 +86,7 @@ void mask_domain(){
 int main(int argc, char *argv[]) {
 
   if (argc>1)
-    LEVEL = atoi(argv[1]);
+    max_LEVEL = atoi(argv[1]);
     if (argc>2)
       run_number = atoi(argv[2]);
   

@@ -1,0 +1,16 @@
+Dato		09/18/2024
+Forsøk Nr.			3
+Amplitude(V)		0.308000
+Padlefrekvensen(Hz)		1.425000
+Antall Perioder			100
+Bølgeform		Tanh*Sin
+Innsamlingstid(s)		80.180000
+Scan Rate(Hz) - Inn			100
+Måletid Før Padlestart(s)		0.000000
+Måletid Etter Padlestart(s)		10.000000
+Vanndyp(m)		0.600000
+beta		0.000000
+gamma		0.000000
+alpha		0.400000
+t_slutt		18.000000
+Triggertidspunkter(s): 		0.001,60.000

@@ -25,8 +25,4 @@ wave_wall: wave_wall.c
 clean:
 	rm perfs ; \
 	rm wave_wall;\
-	rm snapshot.png;\
-	rm *.csv;\
-	rm vtu/ascii/*;\
-	rm vtu/matlab/*;\
-	rm vtu/*.vtu;
+	rm -r results

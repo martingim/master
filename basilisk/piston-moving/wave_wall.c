@@ -20,7 +20,7 @@
 
 int set_n_threads = 3; //0 to use all available threads
 int LEVEL = 6;
-int max_LEVEL = 12 //Default level if none is given as command line argument
+int max_LEVEL = 12; //Default level if none is given as command line argument
 int padding = 1;
 #define _h 0.6//water depth
 double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
@@ -29,10 +29,15 @@ double femax = 0.01;
 double uemax = 0.01;
 double pemax = .1;
 double Tend = 45.;
-double probe_positions[]={8.00, 10.04, 10.75, 11.50};
-int n_probes = 4;
+
+double probe_positions[124];
+int n_probes = 124;
+int n_extra_probe = 4;
+double extra_probe_positions[]={8.00, 10.04, 10.75, 11.50};
+
 vector h[]; //scalar field of the distance from the surface, using heights.h
-char save_location[] = "./"; //the location to save the vtu files
+char results_folder[40]; //the location to save the results
+char vtu_folder[50]; //the locaton to save the vtu files
 
 //piston file 
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
@@ -75,6 +80,18 @@ void read_piston_data(){
   piston_position = piston_positions[0];
 }
 
+event setup_piston_positions(i=0){
+  int j = 0;
+  for(j=0;j<n_extra_probe;j++){
+    probe_positions[j] = extra_probe_positions[j];
+  }
+  probe_positions[j] = 0.1;
+  j++;
+  for(j=j;j<n_probes;j++){
+    probe_positions[j] = probe_positions[j-1]+0.1;
+  }
+}
+
 void mask_domain(){
   //mask away the top of the domain
   mask(y > domain_height - _h ? top : none);
@@ -84,16 +101,48 @@ void mask_domain(){
 }
 
 int main(int argc, char *argv[]) {
-
-  if (argc>1)
-    max_LEVEL = atoi(argv[1]);
-    if (argc>2)
-      run_number = atoi(argv[2]);
   
-  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
-  printf(piston_file);
+  //set max_LEVEL and run number from command line args
+  for(int j=0;j<argc;j++){
+    if (strcmp(argv[j], "-L") == 0) // This is your parameter name
+        {                 
+            max_LEVEL = atoi(argv[j + 1]);    // The next value in the array is your value
+        }
+    if (strcmp(argv[j], "-r") == 0) // This is your parameter name
+        {                 
+            run_number = atoi(argv[j + 1]);    // The next value in the array is your value
+        }  
+  }
+
+  //make folders for saving the results
+  sprintf(results_folder, "results/run%d/LEVEL%d", run_number, max_LEVEL);
+  sprintf(vtu_folder, "%s/vtu", results_folder);
+  
+  char remove_old_results[100];
+  sprintf(remove_old_results, "rm -r %s", results_folder);
+  if (system(remove_old_results)==0){
+    printf("removed old results in:%s\n", results_folder);
+  }
+
+  char make_results_folder[100];
+  sprintf(make_results_folder, "mkdir -p %s", vtu_folder);
+  if (system(make_results_folder)==0){
+    printf("made results folder:%s\n", results_folder);
+  }
+  
+  
+  //copy the script to the results folder for later incpection if needed
+  char copy_script[100];
+  sprintf(copy_script, "cp wave_wall.c %s/wave_wall.c", results_folder);
+  if (system(copy_script)==0){
+    printf("copied script to results folder\n");
+  }
+
+  //piston data
+  sprintf(piston_file, "piston_files/%d/fil1.dat", run_number);
+  printf("%s\n", piston_file);
   read_piston_data();
-  mkdir("./vtu",0755);
+  
   L0 = l;
   //f.sigma = 0.078;
   rho1 = 997;
@@ -171,9 +220,16 @@ event adapt (i++){
 }
 
 event surface_probes(t+=0.01){
-  char filename[40];
-  sprintf(filename, "surface_probes.csv");
+  char filename[100];
+  sprintf(filename, "%s/surface_probes.csv", results_folder);
   FILE *fp = fopen(filename, "a");
+    if (i==0){
+      fprintf(fp, "time,");
+      for (int j = 0;j<n_probes;j++){
+        fprintf(fp, "%f, ", probe_positions[j]);    
+      }
+      fprintf(fp, "\n");
+  }
   fprintf(fp, "%f, ", t);
   heights(f, h);
   double min_height; //vertical distance from the center of the cell to the air water interface
@@ -199,8 +255,8 @@ event surface_probes(t+=0.01){
 //save unordered mesh
 event vtu(t+=1, last){
   printf("Saving vtu file\n");
-  char filename[40];
-  sprintf(filename, "%svtu/TIME-%04.0f", save_location, (t*100));
+  char filename[100];
+  sprintf(filename, "%s/TIME-%04.0f", vtu_folder, (t*100));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 }
 
@@ -208,17 +264,38 @@ event vtu(t+=1, last){
 // void mvtu(int s){
 //   printf("Saving vtu file\n");
 //   char filename[40];
-//   sprintf(filename, "%svtu/TIME-%d", save_location, s);
+//   sprintf(filename, "%s/vtu/TIME-%d", results_folder, s);
 //   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 // }
 
 // event vtu(i++){
 //   printf("Saving vtu file\n");
 //   char filename[40];
-//   sprintf(filename, "%svtu/step-%05d", save_location, i);
+//   sprintf(filename, "%s/vtu/step-%05d", results_folder, i);
 //   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 // }
+// event move_results(t=0)
+// {
+//   char results_folder[40];
+//   char make_folder[100];
+//   sprintf(results_folder, "./results/run%d/LEVEL%d", run_number, max_LEVEL); 
+//   sprintf(remove_folder, "rm -r %s", results_folder); 
+//   sprintf(make_folder, "mkdir -p %s", results_folder);
+  
 
+
+//   if (system(remove_folder)==0){
+//     printf("removed previous run results folder\n");
+//   }
+//   if (system(make_folder)==0){
+//     printf("made folder for results:%s\n", results_folder);
+//   }
+
+  
+  //mkdir(results_folder, 0755);
+  //system(sprintf("rm -r %s", results_folder));//remove the results folder if it already exists
+  //mkdir(results_folder,0755);
+// }
 
 /*
 simulation stopped at Tend

@@ -48,8 +48,8 @@ basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL14/"]; title
 lab_run_number = 1;
 basilisk_folders = [];
 titles = [];
-basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL12/"]; titles = [titles "LEVEL 12"];
-basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL13/"]; titles = [titles "LEVEL 13"];
+% basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL12/"]; titles = [titles "LEVEL 12"];
+% basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL13/"]; titles = [titles "LEVEL 13"];
 basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL14/"]; titles = [titles "LEVEL 14"];
 
 %% plot sensor 1 for different basilisk runs in different plots
@@ -72,7 +72,8 @@ for i=1:size(basilisk_folders, 2)
     plot(t, -(file(:,col)-file(1,col)), 'DisplayName','surface probe')
     
     %plot the basilisk results
-    surface_probes = load(append(basilisk_folder, "surface_probes.csv"));
+    surface_probes = readtable(append(basilisk_folder, "surface_probes.csv"));
+    surface_probes = table2array(surface_probes);
     plot(surface_probes(:,1), surface_probes(:,sensor+1),'DisplayName','basilisk')
     title(titl)
     legend()

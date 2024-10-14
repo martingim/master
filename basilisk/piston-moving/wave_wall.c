@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "utils.h"
-#include "adapt_wavelet_leave_interface.h"
+#include "adapt_wavelet_leave_interface_two_levels.h"
 #include "heights.h"
 #include "output.h"
 #include "navier-stokes/centered.h"
@@ -21,17 +21,17 @@
 int set_n_threads = 3; //0 to use all available threads
 int LEVEL = 6;
 int max_LEVEL = 12; //Default level if none is given as command line argument
-int padding = 1;
+int padding = 2;
 #define _h 0.6//water depth
 double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.01;
 double uemax = 0.01;
-double pemax = .1;
+double pemax = .01;
 double Tend = 45.;
 
-double probe_positions[124];
-int n_probes = 124;
+double probe_positions[144];
+int n_probes = 144;
 int n_extra_probe = 4;
 double extra_probe_positions[]={8.00, 10.04, 10.75, 11.50};
 
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
   }
 
   //piston data
-  sprintf(piston_file, "piston_files/%d/fil1.dat", run_number);
+  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
   printf("%s\n", piston_file);
   read_piston_data();
   
@@ -175,7 +175,7 @@ event init (i = 0) {
   //mvtu(42);
   fraction (f, - y); //set the water depth _h
   fraction (pstn, PISTON); //set the piston fraction
-  while (adapt_wavelet_leave_interface({u.x, u.y},{pstn,p,f},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL, LEVEL,padding).nf){
+  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL+2, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+2}).nf){
     fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }
@@ -185,6 +185,21 @@ event init (i = 0) {
     p[] = pf[];
   }
 }
+
+/*
+The grid is adapted to keep max refinement at the air water interface.
+And to minimise the error in the velocity field.
+ */
+event adapt (i++){
+  adapt_wavelet_leave_interface({u.x, u.y, pf},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+2, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+2});
+  //adapt_wavelet_leave_interface({u.x, u.y},{pstn},(double[]){1, 1, femax}, max_LEVEL+2, max_LEVEL,padding);
+  fraction(pstn, PISTON);
+  unrefine ((x>(piston_position+0.05))&&(level>=max_LEVEL));
+  unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
+  unrefine ((y<-0.4)); //unrefine the bottom
+  unrefine ((y>0.1));
+}
+
 
 /**
 The moving piston is implemented via Stephane's trick. Note that this
@@ -204,19 +219,6 @@ event piston (i++, first) {
     u.x[] = pstn[]*U_X + u.x[]*(1 - pstn[]);
   }
   //printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
-}
-
-/*
-The grid is adapted to keep max refinement at the air water interface.
-And to minimise the error in the velocity field.
- */
-event adapt (i++){
-  adapt_wavelet_leave_interface({u.x, u.y},{pstn,pf,f},(double[]){uemax, uemax, femax, pemax, femax}, max_LEVEL, LEVEL,padding);
-  fraction(pstn, PISTON);
-  unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
-  unrefine ((x > piston_position+0.1)&&(y<-0.4)); //unrefine the bottom
-  //unrefine ((x>piston_position)&&(f[]<0.01)); //unrefine the air
-  unrefine ((y>0.1));
 }
 
 event surface_probes(t+=0.01){
@@ -253,10 +255,10 @@ event surface_probes(t+=0.01){
 }
 
 //save unordered mesh
-event vtu(t+=1, last){
+event vtu(t+=0.1, last){
   printf("Saving vtu file\n");
   char filename[100];
-  sprintf(filename, "%s/TIME-%04.0f", vtu_folder, (t*100));
+  sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 }
 

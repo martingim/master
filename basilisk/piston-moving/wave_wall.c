@@ -18,11 +18,11 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 2; //0 to use all available threads
+int set_n_threads = 2; //0 to use all available threads for OPENMP
 int LEVEL = 6;
 int max_LEVEL = 12; //Default level if none is given as command line argument
 int padding = 2;
-#define EXTRA_PISTON_LEVEL 1 //extra refinement around the piston to make it leak less 
+int EXTRA_PISTON_LEVEL = 3; //extra refinement around the piston to make it leak less 
 
 #define _h 0.6//water depth
 double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
@@ -30,7 +30,7 @@ double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.01;
 double uemax = 0.01;
 double pemax = .01;
-double Tend = 45.;
+double Tend = 10.;
 
 double probe_positions[144];
 int n_probes = 144;
@@ -109,6 +109,10 @@ int main(int argc, char *argv[]) {
     if (strcmp(argv[j], "-L") == 0) // This is your parameter name
         {                 
             max_LEVEL = atoi(argv[j + 1]);    // The next value in the array is your value
+        }
+    if (strcmp(argv[j], "-P") == 0) // This is your parameter name
+        {                 
+            EXTRA_PISTON_LEVEL = atoi(argv[j + 1]);    // The next value in the array is your value
         }
     if (strcmp(argv[j], "-r") == 0) // This is your parameter name
         {                 
@@ -196,7 +200,7 @@ event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
   unrefine ((x>(piston_position+0.05))&&(level>=max_LEVEL));
   unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
-  unrefine ((y<-0.4)); //unrefine the bottom
+  unrefine ((y<-0.4)&&(x>(piston_position+0.02))); //unrefine the bottom
   unrefine ((y>0.1));
   fraction(pstn, PISTON);
 

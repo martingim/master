@@ -54,6 +54,12 @@ double piston_position = 0; //the starting position of the piston
 double piston_position_p; //piston position at the previous timestep
 double U_X = 0.; //the speed of the piston
 //piston parameters 
+#define PISTON1 ((z>0.0)&&(z<0.5))
+#define PISTON2 ((z>0.5)&&(z<1.0))
+#define PISTON3 ((z>1.0)&&(z<1.5))
+scalar pstn1[];
+scalar pstn2[];
+scalar pstn3[];
 
 void read_piston_data(){
   int count = 0;
@@ -179,7 +185,9 @@ event init (i = 0) {
   while (adapt_wavelet_leave_interface({u.x, u.y, u.z, p},{f},(double[]){uemax,uemax,uemax, pemax, femax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
     fraction (f, - y); //set the water level on the refined mesh
   }
-  unrefine ((x < -0.1)&&(level>6));
+  fraction(pstn1, PISTON1);
+  fraction(pstn2, PISTON2);
+  fraction(pstn3, PISTON3);
   foreach(){
     pf[] = 0;
     p[] = pf[];
@@ -208,7 +216,10 @@ event piston (i++, first) {
   //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
   U_X = (piston_position-piston_position_p)/dt;
   piston_position_p = piston_position;
-  u.n[left] = dirichlet(U_X); 
+  fraction(pstn1, PISTON1);
+  fraction(pstn2, PISTON2);
+  fraction(pstn3, PISTON3);
+  u.n[left] = dirichlet(U_X*pstn1[]+0*pstn2[]-U_X*pstn3[]); 
 }
 
 event surface_probes(t+=0.01){

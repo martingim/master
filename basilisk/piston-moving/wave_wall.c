@@ -6,8 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "utils.h"
-//#include "adapt_wavelet_leave_interface_two_levels.h"
-#include "adapt_wavelet_leave_interface.h"
+#include "adapt_wavelet_leave_interface_two_levels.h"
 #include "heights.h"
 #include "output.h"
 #include "navier-stokes/centered.h"
@@ -23,6 +22,8 @@ int set_n_threads = 2; //0 to use all available threads
 int LEVEL = 6;
 int max_LEVEL = 12; //Default level if none is given as command line argument
 int padding = 2;
+#define EXTRA_PISTON_LEVEL 1 //extra refinement around the piston to make it leak less 
+
 #define _h 0.6//water depth
 double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
@@ -116,7 +117,7 @@ int main(int argc, char *argv[]) {
   }
 
   //make folders for saving the results
-  sprintf(results_folder, "results/run%d/LEVEL%d", run_number, max_LEVEL);
+  sprintf(results_folder, "results/run%d/LEVEL%d_%d", run_number, max_LEVEL, EXTRA_PISTON_LEVEL);
   sprintf(vtu_folder, "%s/vtu", results_folder);
   
   char remove_old_results[100];
@@ -176,8 +177,7 @@ event init (i = 0) {
   //mvtu(42);
   fraction (f, - y); //set the water depth _h
   fraction (pstn, PISTON); //set the piston fraction
-  //while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL+2, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+2}).nf){  //for adapting more around the piston interface
-  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL, LEVEL,padding).nf){
+  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL}).nf){  //for adapting more around the piston interface
     fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }
@@ -193,8 +193,7 @@ The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
  */
 event adapt (i++){
-  //adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+2, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+2});
-  adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, femax}, max_LEVEL, LEVEL,padding);
+  adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
   unrefine ((x>(piston_position+0.05))&&(level>=max_LEVEL));
   unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
   unrefine ((y<-0.4)); //unrefine the bottom

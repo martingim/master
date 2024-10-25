@@ -1,5 +1,4 @@
 /**
-# intialised third order stokes wave with periodic boundary conditions
 
 based on bar.c and breaking.c
 the parameters for the wave are from 
@@ -8,60 +7,142 @@ the parameters for the wave are from
   Experiments in Fluids, 30(5), 500–510. https://doi.org/10.1007/s003480000229
 */
 
-#include "grid/multigrid1D.h"
+#include "grid/multigrid.h"
 #include "layered/hydro.h"
 #include "layered/nh.h"
 #include "layered/remap.h"
-
 #include "layered/check_eta.h"
 #include "layered/perfs.h"
-
+#include "output_pvd.h"
 double Tend = 30;    //the end time of the simulation
-double Lx = 24.6; //The length of the simulation domain
+double Lx = 7; //The length of the simulation domain
 double g = 9.81;
-double omega = 8.95;
-double piston_amplitude = 0.0128;
-int LEVEL = 12;      //the grid resolution in x direction Nx = 2**LEVEL
+int LEVEL = 7;      //the grid resolution in x direction Nx = 2**LEVEL
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
                     //a regular distribution. the rest fo the layers follow a geometric distribution.
 double h_ = 0.6;                   
 char save_location[] = "./";
 
-#define nl_ 10  //the default number of layers if none are given as command line arguments
+#define nl_ 5  //the default number of layers if none are given as command line arguments
 #define g_ g
 
 double t_dim = 1;
-//U=d/dt (piston_amplitude*tanh(t)*sin(omega*t))
-#define U (piston_amplitude*(t_dim*sin(omega*t)/cosh(t*t_dim)/cosh(t*t_dim)+tanh(t*t_dim)*omega*cos(omega*t)))
 
-/**
-We use Stokes third order wave from src/test/stokes.h to initialise the surface elevation 
-and the velocity field*/
+float piston_function(double y, double y0, double y1, double Delta){
+    if ((y<y0-Delta/2.)||(y>y1+Delta/2.)){
+      return 0.;
+    }
+    else if ((y-y0)<Delta/2.) {
+      return 0.5-(y0-y)/Delta;
+    }
+    else if ((y1-y)<Delta/2.) {
+      return 0.5-(y-y1)/Delta;
+    }
+    else{
+      return 1.;
+    }
+}
+
+//piston file 
+int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
+char piston_file[40];
+int file_samplerate = 100; //the samplerate of the piston position file
+#define piston_timesteps 10000//the number of timesteps in the piston file
+int piston_counter;
+double piston_positions[piston_timesteps];
+double piston_position = 0; //the starting position of the piston
+double piston_position_p; //piston position at the previous timestep
+double U_X = 0.; //the speed of the piston
+//piston parameters 
+scalar pstn1[] = 0;
+scalar pstn2[] = 0;
+scalar pstn3[] = 0;
+scalar pstn4[] = 0;
+scalar pstn5[] = 0;
+scalar pstn6[] = 0;
+scalar pstn7[] = 0;
+scalar pstn8[] = 0;
+scalar pstn9[] = 0;
+scalar pstn10[] = 0;
+scalar pstn11[] = 0;
+scalar pstn12[] = 0;
+scalar pstn13[] = 0;
+scalar pstn14[] = 0;
+
+void read_piston_data(){
+  int count = 0;
+  FILE *file;
+  file = fopen(piston_file, "r");
+  if(!file)
+    {
+        perror("Error opening piston position file");
+    }
+  int _running=1;
+  while(_running && count< piston_timesteps ){
+    _running = fscanf(file, "%lf", &(piston_positions[count]));
+    piston_positions[count] /=100.; //convert to meters
+    count++;
+  }
+  fclose(file);
+  double start_offset = piston_positions[0];
+  for (int i=0;i<count;i++){
+    piston_positions[i] -= start_offset;
+  }
+  piston_position_p = piston_positions[0];
+  piston_position = piston_positions[0];
+}
+
+event piston_update(i++){
+  piston_counter = floor(t*100);
+  double ins_ = 1;
+  double counter_remainder = 0;
+  counter_remainder = t*100.*ins_-piston_counter;
+  piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
+  //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
+  U_X = (piston_position-piston_position_p)/dt;
+  piston_position_p = piston_position;
+  u.n[left] = dirichlet(U_X*(pstn1[]+pstn2[]-pstn3[]+pstn12[])); 
+}
 
 event init (i = 0)
 {
-  u.n[left]  = radiation (U);
-  u.n[right] = + radiation (0);
+  
+  u.n[right] = dirichlet(0);
 
   //geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
   foreach() {
-    zb[] = -h_;
-    foreach_layer(){
-      h[] = h_/nl;
-    }
+   zb[] = -h_;
+   foreach_layer(){
+     h[] = h_/nl;
+   }
   }
-#if _MPI
-  fprintf(stderr, "mpi\n");
-#elif _OPENMP
-  int num_omp = omp_get_max_threads();
-  fprintf(stderr, "number of openmp threads:%d\n", num_omp);
-  omp_set_num_threads(36);
-#endif
 
+foreach(){
+  pstn1[] =  piston_function(y, 0., 0.5, Delta);
+  pstn2[] =  piston_function(y, 0.5, 1., Delta);
+  pstn3[] =  piston_function(y, 1., 1.5, Delta);
+  pstn4[] =  piston_function(y, 1.5, 2., Delta);
+  pstn5[] =  piston_function(y, 2., 2.5, Delta);
+  pstn6[] =  piston_function(y, 2.5, 3., Delta);
+  pstn7[] =  piston_function(y, 3., 3.5, Delta);
+  pstn8[] =  piston_function(y, 3.5, 4., Delta);
+  pstn9[] =  piston_function(y, 4., 4.5, Delta);
+  pstn10[] =  piston_function(y, 4.5, 5., Delta);
+  pstn11[] =  piston_function(y, 5., 5.5, Delta);
+  pstn12[] =  piston_function(y, 5.5, 6., Delta);
+  pstn13[] =  piston_function(y, 6., 6.5, Delta);
+  pstn14[] =  piston_function(y, 6.5, 7., Delta);
+  
+}
 }
 
 int main(int argc, char *argv[])
   {
+  //piston data
+  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
+  printf("%s\n", piston_file);
+  read_piston_data();
+  //origin(0,-0.5);
   if (argc>1)
     LEVEL = atoi(argv[1]);
     if (argc>2)
@@ -76,50 +157,29 @@ int main(int argc, char *argv[])
   breaking = 0.1;
   CFL_H = .5;
   TOLERANCE = 10e-5;
-  //theta_H = 0.51
+  //theta_H = 0.51 
+  #if _MPI
+  fprintf(stderr, "mpi\n");
+#elif _OPENMP
+  int num_omp = omp_get_max_threads();
+  fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
+  //omp_set_num_threads(4);   
+  //fprintf(stderr, "set openmp threads:%d\n", 4);
+#endif
   run();
 }
 
-event save_velocity(t += Tend; t<=Tend)
-{
-  char filename[200];
-  sprintf(filename, "%svelocities_nx%d_nl%d_timestep_%d.csv", save_location, 1<<LEVEL, nl, i);
-  fprintf(stderr, "saving results to:%s\n", filename);
-  FILE *fp = fopen(filename, "w"); //if at the first timestep overwrite the previous file, can later add run parameters here
-  fprintf(fp, "\"Time\",\"layer\",\"Points:0\",\"Points:1\",\"Points:2\",\"u.x\",\"u.z\",\"eta\"\n");
-  foreach(serial){
-    double z = zb[];
-    foreach_layer(){
-      z += h[]/2;
-      fprintf(fp, "%f, %d, %f, %f, %f, %f, %f, %f\n", t, point.l, x, 0., z, u.x[], w[], eta[]);
-      z += h[]/2;
-    }
-  }
-  fclose(fp); 
-}
 
-event save_energy(i++)
+event output_field (t <= Tend; t += 0.1)
 {
-  char filename[200];
-  sprintf(filename, "%senergy_nx%d_nl%d.csv", save_location, 1<<LEVEL, nl);
-  static FILE * fp = fopen(filename, "w");
-  double gpe = 0.;
-  double ke = 0.;
-
-  foreach(reduction(+:ke) reduction(+:gpe)){
-    double z = zb[]*0;
-    foreach_layer(){
-      double norm2 = sq(w[]);
-      foreach_dimension()
-	      norm2 += sq(u.x[]);
-      ke += norm2*h[]*dv();
-      gpe += (z + h[]/2)*h[]*dv();
-      z += h[];
-    }
-  }
-  if (i == 0)
-    fprintf (fp, "ke, gpe, t\n");
-  fprintf(fp, "%f, %f, %f\n", ke, gpe, t);
+    fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
+    static int j = 0;
+    char name[100];
+    sprintf(name, "field_%.6i.vts", j++);
+    fprintf(stdout, "written to: %s\n", name);
+    FILE* fp = fopen(name, "w");
+    output_vts_ascii_all_layers(fp, {eta,h,u, pstn1, pstn3}, N);
+    fclose(fp);
 }
 
 /**
@@ -160,10 +220,8 @@ event profiles (t += 0.05)
 
 event gnuplot (t = Tend) {
   FILE * fp = popen ("gnuplot", "w");
-  fprintf (fp,
-           "set term pngcairo enhanced size 640,640 font \",8\"\n"
-           "set output 'snapshot.png'\n");
-  plot_profile (t, fp);
+  fprintf (fp,pstn1[] =  piston_function(y, 0., 0.5, Delta);
+  
 }
 
 #endif
@@ -187,5 +245,5 @@ Gauge gauges[] = {
   };
 
 
-event output (t += 0.01; t <= Tend)
-  output_gauges (gauges, {eta});
+//event output (t += 0.01; t <= Tend)
+//  output_gauges (gauges, {eta});

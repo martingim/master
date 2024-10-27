@@ -14,7 +14,7 @@ mpi_multilayer: multilayer.c
 	CC99='mpicc -std=c99' qcc -D_MPI=1 -fopenmp multilayer.c -o multilayer -fopenmp -lm -L. -L$(GL_LIBS) -lglutils -ldl -lpthread -Wall -O2 -lstdc++ -L$(PPR_LIBS) -lppr -lgfortran
 
 openmp_multilayer: multilayer.c
-	CC99='gcc -std=c99' qcc -fopenmp multilayer.c -o multilayer  -fopenmp -lm -L. -L$(GL_LIBS) -lglutils -lOSMesa -lGLU -ldl -lpthread -Wall -O2 -lstdc++ -L$(PPR_LIBS) -lppr -lgfortran
+	CC99='gcc -std=c99' qcc -fopenmp multilayer.c -o multilayer  -fopenmp -lm -L. -L$(CFD_LIBS) -L$(GL_LIBS) -lglutils -lOSMesa -lGLU -ldl -lpthread -Wall -O2 -lstdc++ -L$(PPR_LIBS) -lppr -lgfortran -I$(CFD_LIBS)
 
 multilayer: multilayer.c
 	CC99='gcc -std=c99' qcc multilayer.c -o multilayer -lm -L. -L$(CFD_LIBS) -L$(GL_LIBS) -lglutils -ldl -lpthread -Wall -O2 -lstdc++ -L$(PPR_LIBS) -lppr -lgfortran -I$(CFD_LIBS)

@@ -23,10 +23,14 @@ double rmin = 0.5;  //rmin the relative height of the top layer compared to
 double h_ = 0.6;                   
 char save_location[] = "./";
 
+int set_n_threads = 6; //set number of threads manually
 #define nl_ 5  //the default number of layers if none are given as command line arguments
 #define g_ g
 
 double t_dim = 1;
+
+char results_folder[40]; //the location to save the results
+char vts_folder[50]; //the locaton to save the vtu files
 
 float piston_function(double y, double y0, double y1, double Delta){
     if ((y<y0-Delta/2.)||(y>y1+Delta/2.)){
@@ -43,6 +47,7 @@ float piston_function(double y, double y0, double y1, double Delta){
     }
 }
 
+
 //piston file 
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
 char piston_file[40];
@@ -54,6 +59,7 @@ double piston_position = 0; //the starting position of the piston
 double piston_position_p; //piston position at the previous timestep
 double U_X = 0.; //the speed of the piston
 //piston parameters 
+
 scalar pstn1[] = 0;
 scalar pstn2[] = 0;
 scalar pstn3[] = 0;
@@ -102,20 +108,29 @@ event piston_update(i++){
   U_X = (piston_position-piston_position_p)/dt;
   piston_position_p = piston_position;
   u.n[left] = dirichlet(U_X*(pstn1[]+pstn2[]-pstn3[]+pstn12[])); 
+  //u.n[left] = dirichlet(U_X);
 }
 
 event init (i = 0)
 {
-  
+  fprintf(stderr, "current threads:%d\n", omp_get_num_threads());
+  fprintf(stderr, "max number of openmp threads:%d\n", omp_get_max_threads());
   u.n[right] = dirichlet(0);
 
-  //geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
+  geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
   foreach() {
-   zb[] = -h_;
-   foreach_layer(){
-     h[] = h_/nl;
-   }
+    zb[] = -h_;
+    foreach_layer(){
+      h[] = (max(- zb[], 0.))*beta[point.l];
+    }
   }
+  
+  // foreach() {
+  //  zb[] = -h_;
+  //  foreach_layer(){
+  //    h[] = h_/nl;
+  //  }
+  // }
 
 foreach(){
   pstn1[] =  piston_function(y, 0., 0.5, Delta);
@@ -132,17 +147,59 @@ foreach(){
   pstn12[] =  piston_function(y, 5.5, 6., Delta);
   pstn13[] =  piston_function(y, 6., 6.5, Delta);
   pstn14[] =  piston_function(y, 6.5, 7., Delta);
-  
 }
+
 }
 
 int main(int argc, char *argv[])
   {
+
+    //set max_LEVEL and run number from command line args
+  for(int j=0;j<argc;j++){
+    if (strcmp(argv[j], "-L") == 0) // This is your parameter name
+        {                 
+            LEVEL = atoi(argv[j + 1]);    // The next value in the array is your value
+        }
+    if (strcmp(argv[j], "-r") == 0) // This is your parameter name
+        {                 
+            run_number = atoi(argv[j + 1]);    // The next value in the array is your value
+        }  
+    if (strcmp(argv[j], "-nl") == 0) // This is your parameter name
+        {                 
+            nl = atoi(argv[j + 1]);    // The next value in the array is your value
+        }
+  }
+
+  //make folders for saving the results
+  sprintf(results_folder, "results/run%d/LEVEL%d_layers%d", run_number, LEVEL, nl);
+  sprintf(vts_folder, "%s/vts", results_folder);
+  
+  char remove_old_results[100];
+  sprintf(remove_old_results, "rm -r %s", results_folder);
+  if (system(remove_old_results)==0){
+    printf("removed old results in:%s\n", results_folder);
+  }
+
+  char make_results_folder[100];
+  sprintf(make_results_folder, "mkdir -p %s", vts_folder);
+  if (system(make_results_folder)==0){
+    printf("made results folder:%s\n", results_folder);
+  }
+  
+  
+  //copy the script to the results folder for later incpection if needed
+  char copy_script[100];
+  sprintf(copy_script, "cp multilayer.c %s/multilayer.c", results_folder);
+  if (system(copy_script)==0){
+    printf("copied script to results folder\n");
+  }
+
   //piston data
   sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
   printf("%s\n", piston_file);
   read_piston_data();
   //origin(0,-0.5);
+
   if (argc>1)
     LEVEL = atoi(argv[1]);
     if (argc>2)
@@ -157,29 +214,34 @@ int main(int argc, char *argv[])
   breaking = 0.1;
   CFL_H = .5;
   TOLERANCE = 10e-5;
-  //theta_H = 0.51 
-  #if _MPI
-  fprintf(stderr, "mpi\n");
-#elif _OPENMP
+  //theta_H = 0.51;
+  #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
-  //omp_set_num_threads(4);   
-  //fprintf(stderr, "set openmp threads:%d\n", 4);
-#endif
+  omp_set_num_threads(set_n_threads);   
+  fprintf(stderr, "set openmp threads:%d\n", 4);
+  #elif _MPI
+  fprintf(stderr, "mpiiiiii\n");
+  fprintf(stderr, "npe:%d\n", npe());
+  #endif
+
   run();
 }
 
 
-event output_field (t <= Tend; t += 0.1)
+event output_field (t <= Tend; t += 1)
 {
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
     static int j = 0;
     char name[100];
-    sprintf(name, "field_%.6i.vts", j++);
+    sprintf(name, "%s/field_%.6i.vts",vts_folder, j++);
     fprintf(stdout, "written to: %s\n", name);
     FILE* fp = fopen(name, "w");
-    output_vts_ascii_all_layers(fp, {eta,h,u, pstn1, pstn3}, N);
+    output_vts_ascii_all_layers(fp, {eta,h,u}, N);
     fclose(fp);
+    #if _OPENMP
+    omp_set_num_threads(set_n_threads);
+    #endif
 }
 
 /**

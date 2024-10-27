@@ -14,7 +14,9 @@ the parameters for the wave are from
 #include "layered/check_eta.h"
 #include "layered/perfs.h"
 #include "output_pvd.h"
-double Tend = 30;    //the end time of the simulation
+#include "view.h"
+//#include "display.h"
+double Tend = 2;    //the end time of the simulation
 double Lx = 7; //The length of the simulation domain
 double g = 9.81;
 int LEVEL = 7;      //the grid resolution in x direction Nx = 2**LEVEL
@@ -107,7 +109,7 @@ event piston_update(i++){
   //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
   U_X = (piston_position-piston_position_p)/dt;
   piston_position_p = piston_position;
-  u.n[left] = dirichlet(U_X*(pstn1[]+pstn2[]-pstn3[]+pstn12[])); 
+  u.n[left] = dirichlet(U_X*(pstn1[]+pstn2[]+pstn3[]+pstn4[]-pstn5[] - 0.5*pstn6[] +pstn10[]+ 2*pstn11[]+pstn12[])); 
   //u.n[left] = dirichlet(U_X);
 }
 
@@ -154,20 +156,24 @@ foreach(){
 int main(int argc, char *argv[])
   {
 
-    //set max_LEVEL and run number from command line args
+    //set LEVEL, layers and run number from command line args
   for(int j=0;j<argc;j++){
-    if (strcmp(argv[j], "-L") == 0) // This is your parameter name
+    if (strcmp(argv[j], "-L") == 0) 
         {                 
-            LEVEL = atoi(argv[j + 1]);    // The next value in the array is your value
+            LEVEL = atoi(argv[j + 1]);
         }
-    if (strcmp(argv[j], "-r") == 0) // This is your parameter name
+    if (strcmp(argv[j], "-r") == 0) 
         {                 
-            run_number = atoi(argv[j + 1]);    // The next value in the array is your value
+            run_number = atoi(argv[j + 1]);
         }  
-    if (strcmp(argv[j], "-nl") == 0) // This is your parameter name
-        {                 
-            nl = atoi(argv[j + 1]);    // The next value in the array is your value
-        }
+    if (strcmp(argv[j], "-nl") == 0)
+    {                 
+      nl = atoi(argv[j + 1]); 
+    }
+    else
+    {
+      nl = nl_;
+    }
   }
 
   //make folders for saving the results
@@ -200,13 +206,6 @@ int main(int argc, char *argv[])
   read_piston_data();
   //origin(0,-0.5);
 
-  if (argc>1)
-    LEVEL = atoi(argv[1]);
-    if (argc>2)
-      nl = atoi(argv[2]);
-    else
-      nl = nl_;
-  
   //origin (0, h_);
   N = 1<<LEVEL;
   L0 = Lx;
@@ -242,6 +241,18 @@ event output_field (t <= Tend; t += 1)
     #if _OPENMP
     omp_set_num_threads(set_n_threads);
     #endif
+}
+
+event movie (t += 1./25.)
+{
+  view (fov = 17.3106,quat = {0.549, -0.058, -0.101, 0.828},
+      tx = -0.356, ty = -0.266, tz = -1.720,
+      width = 1200, height = 768);
+  char s[80];
+  sprintf (s, "t = %.2f T0", t);
+  draw_string (s, size = 80);
+  squares ("u4.x", linear = true, z = "eta", min = -0.15, max = 0.6);
+  save ("movie.mp4");
 }
 
 /**

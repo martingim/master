@@ -18,13 +18,13 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 2; //0 to use all available threads for OPENMP
+int set_n_threads = 6; //0 to use all available threads for OPENMP
 int LEVEL = 6;
 int max_LEVEL = 12; //Default level if none is given as command line argument
 int padding = 2;
 
 #define _h 0.6//water depth
-double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double l = 25.6/2; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.01;
 double uemax = 0.01;
@@ -219,7 +219,7 @@ event surface_probes(t+=0.01){
   fprintf(fp, "%f", t);
   heights(f, h);
   double min_height; //vertical distance from the center of the cell to the air water interface
-  double surface_elevation;
+  double surface_elevation=0;
   for (int probe_n=0;probe_n<n_probes;probe_n++){
     min_height=1;
     foreach(serial){
@@ -239,7 +239,7 @@ event surface_probes(t+=0.01){
 }
 
 //save unordered mesh
-event vtu(t+=1, last){
+event vtu(t+=0.1, last){
   printf("Saving vtu file\n");
   char filename[100];
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
@@ -270,7 +270,7 @@ event vtu(t+=1, last){
   
 
 
-//   if (system(remove_folder)==0){
+//   if (system(remove_folder)==0){ 
 //     printf("removed previous run results folder\n");
 //   }
 //   if (system(make_folder)==0){

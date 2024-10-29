@@ -15,6 +15,7 @@ the parameters for the wave are from
 
 #include "layered/check_eta.h"
 #include "layered/perfs.h"
+#include "output_pvd.h"
 
 double ak = 0.16;   //wave steepness
 double Tend = 5;    //the end time of the simulation
@@ -174,6 +175,20 @@ event gnuplot (t = Tend) {
   plot_profile (t, fp);
 }
 
+event output_field (t <= Tend; t += .1)
+{
+    fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
+    static int j = 0;
+    char name[100];
+    sprintf(name, "field_%.6i.vts", j++);
+    fprintf(stdout, "written to: %s\n", name);
+    FILE* fp = fopen(name, "w");
+    output_vts_ascii_all_layers(fp, {eta,h,u}, N);
+    fclose(fp);
+    #if _OPENMP
+    omp_set_num_threads(6);
+    #endif
+}
 // gauges to compare the surface elevation
 // Gauge gauges[] = {
 //   {"X_0",  0},

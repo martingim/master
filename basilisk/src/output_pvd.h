@@ -437,8 +437,13 @@ void output_vts_ascii_all_layers(FILE* fp, scalar* list, int N)
 #if dimension == 1
   fputs("\t\t\t\t <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">\n", fp);
   double* zcorr = (double *)malloc((N+1)*sizeof(double));
-  for (int j = 0; j <= N; j++){
-    zcorr[j] = 0;
+  // for (int j = 0; j <= N; j++){
+  //   zcorr[j] = eta[j,0,0];
+  // }
+  int mi = 0;
+  foreach (serial){
+    zcorr[mi] = eta[0,0,0];
+    mi++;
   }
   int k;
   for(int i = nl-1; i >= 0; i--){

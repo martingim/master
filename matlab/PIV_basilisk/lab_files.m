@@ -4,11 +4,11 @@ lab_folder = "Lab_results/24_04_12/";
 lab_surface_probes = ["f1425_a0_308.csv";
             "f1425_a0_308_r2.csv";
             "f1425_a0_308_r3.csv";
-            "f1425_a0_616_r1.csv";
+            "f1425_a0_616_r1.csv";  
             "f1425_a0_154_r1.csv"];
 
 
-%%
+% %%
 lab_folder = "Lab_results/24_09_18/";
 lab_surface_probes = ["f1425_a308_r1.csv";
             "f1425_a308_r2.csv";

@@ -23,14 +23,10 @@ double g = 9.81;
 int LEVEL = 9;      //the grid resolution in x direction Nx = 2**LEVEL
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
                     //a regular distribution. the rest fo the layers follow a geometric distribution.
-double h_ = 0.6;                   
-char save_location[] = "./";
-
+double h_ = 0.6;    //water depth
 int set_n_threads = 6; //set number of threads manually
 #define nl_ 10  //the default number of layers if none are given as command line arguments
 #define g_ g
-
-double t_dim = 1;
 
 char results_folder[40]; //the location to save the results
 char vts_folder[50]; //the locaton to save the vtu files
@@ -38,7 +34,7 @@ char vts_folder[50]; //the locaton to save the vtu files
 double probe_positions[144] = {8.0,10.048,10.745,11.498};
 int n_probes = 144;
 
-event setup_piston_positions(i=0){
+event setup_probe_positions(i=0){
   double probe_x = 0.1;
   for(int j=4;j<n_probes;j++){
     probe_positions[j] =probe_x;
@@ -46,54 +42,19 @@ event setup_piston_positions(i=0){
   }
 }
 
-//piston file 
-double piston_f = 1.425;
-int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
-char piston_file[40];
-int file_samplerate = 100; //the samplerate of the piston position file
-#define piston_timesteps 10000//the number of timesteps in the piston file
-double piston_positions[piston_timesteps];
-double piston_position = 0; //the starting position of the piston
-double piston_position_p=0; //piston position at the previous timestep
+//piston parameters
+int run_number = 1;
+double piston_f = 1.425;//the frequency of the piston movement
+double piston_amplitude = 0.042*0.308;
 double U_X = 0.; //the speed of the piston
-double freq = 1.45;
-double max_speed = 0.2;
-//piston parameters 
-
-void read_piston_data(){
-  int count = 0;
-  FILE *file;
-  file = fopen(piston_file, "r");
-  if(!file)
-    {
-        perror("Error opening piston position file");
-    }
-  int _running=1;
-  while(_running && count< piston_timesteps ){
-    _running = fscanf(file, "%lf", &(piston_positions[count]));
-    piston_positions[count] /=100.; //convert to meters
-    count++;
-  }
-  fclose(file);
-  double start_offset = piston_positions[0];
-  for (int i=0;i<count;i++){
-    piston_positions[i] -= start_offset;
-  }
-  piston_position_p = piston_positions[0];
-  piston_position = piston_positions[0];
-}
 
 event piston_update(i++){
-  int piston_counter;
-  piston_counter = floor(t*100);
-  double ins_ = 1;
-  double counter_remainder = 0;
-  counter_remainder = t*100.*ins_-piston_counter;
-  piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
-  //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
-  U_X = (piston_position-piston_position_p)/dt;
-  U_X = 0.044*0.308*(1/cosh(t)/cosh(t)*sin(2*piston_f*pi*t) + 2*piston_f*pi*cos(2*piston_f*pi*t)*tanh(t));
-  piston_position_p = piston_position;
+  if (t<0.1){
+    U_X = 0;
+  }
+  else{
+  U_X = piston_amplitude*(4/cosh(2*t-0.2)/cosh(2*t-0.2)*tanh(2*t-0.2)*sin(2*pi*piston_f*t-0.34) + 2*piston_f*pi*cos(2*pi*piston_f*t-0.34)*tanh(2*t-0.2)*tanh(2*t-0.2));
+  }
   u.n[left] = dirichlet(U_X);
 }
 
@@ -131,16 +92,11 @@ int main(int argc, char *argv[])
         {                 
             LEVEL = atoi(argv[j + 1]);
         }
-    if (strcmp(argv[j], "-r") == 0) 
-        {                 
-            run_number = atoi(argv[j + 1]);
-        }  
     if (strcmp(argv[j], "-nl") == 0)
     {                
       nl = atoi(argv[j + 1]); 
     }
   }
-  fprintf(stderr, "set level %d\n\n\n", nl);
   //make folders for saving the results
   sprintf(results_folder, "results/run%d/LEVEL%d_layers%d", run_number, LEVEL, nl);
   sprintf(vts_folder, "%s/vts", results_folder);
@@ -164,12 +120,6 @@ int main(int argc, char *argv[])
   if (system(copy_script)==0){
     printf("copied script to results folder\n");
   }
-
-  //piston data
-  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
-  printf("%s\n", piston_file);
-  read_piston_data();
-
 
   origin (0, h_);
   

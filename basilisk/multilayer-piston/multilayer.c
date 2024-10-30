@@ -34,8 +34,20 @@ double t_dim = 1;
 
 char results_folder[40]; //the location to save the results
 char vts_folder[50]; //the locaton to save the vtu files
+//surface probes
+double probe_positions[144] = {8.0,10.048,10.745,11.498};
+int n_probes = 144;
+
+event setup_piston_positions(i=0){
+  double probe_x = 0.1;
+  for(int j=4;j<n_probes;j++){
+    probe_positions[j] =probe_x;
+    probe_x = probe_x+0.1;
+  }
+}
 
 //piston file 
+double piston_f = 1.425;
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
 char piston_file[40];
 int file_samplerate = 100; //the samplerate of the piston position file
@@ -80,6 +92,7 @@ event piston_update(i++){
   piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
   //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
   U_X = (piston_position-piston_position_p)/dt;
+  U_X = 0.044*0.308*(1/cosh(t)/cosh(t)*sin(2*piston_f*pi*t) + 2*piston_f*pi*cos(2*piston_f*pi*t)*tanh(t));
   piston_position_p = piston_position;
   u.n[left] = dirichlet(U_X);
 }
@@ -91,7 +104,7 @@ event init (i = 0)
   fprintf(stderr, "max number of openmp threads:%d\n", omp_get_max_threads());
   #endif
   // u.n[right] = dirichlet(0);
-  u.n[left] = neumann(0);
+  //u.n[left] = neumann(0);
   geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
   foreach() {
     zb[] = -h_;
@@ -262,16 +275,22 @@ event show_progress(i++)
   printf("%.2f%%\n", progress*100);
 }
 
-
-//gauges to compare the surface elevation
-Gauge gauges[] = {
-  {"X_0",  1.5},
-  {"X_1",  10.048},
-  {"X_2",  10.745},
-  {"X_3",  11.498},
-  {NULL}
-  };
-
-
-event output (t += 0.01; t <= Tend)
- output_gauges (gauges, {eta});
+event surface_probes(t+=0.01){
+  char filename[100];
+  sprintf(filename, "%s/surface_probes.csv", results_folder);
+  FILE *fp = fopen(filename, "a");
+    if (i==0){
+      fprintf(fp, "time, U_X");
+      for (int j = 0;j<n_probes;j++){
+        fprintf(fp, ", %f", probe_positions[j]);    
+      }
+      fprintf(fp, "\n");
+  }
+  fprintf(fp, "%f, %f", t, U_X);
+  for (int probe_n=0;probe_n<n_probes;probe_n++){
+    
+    fprintf(fp, ", %f", interpolate(eta, probe_positions[probe_n],-h_));
+  }
+  fprintf(fp, "\n");
+  fclose(fp);
+}

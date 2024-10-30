@@ -18,7 +18,7 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 6; //0 to use all available threads for OPENMP
+int set_n_threads = 1; //0 to use all available threads for OPENMP
 int LEVEL = 6;
 int max_LEVEL = 12; //Default level if none is given as command line argument
 int padding = 2;
@@ -43,17 +43,16 @@ char vtu_folder[50]; //the locaton to save the vtu files
 //piston file 
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
 char piston_file[40];
-int file_samplerate = 100; //the samplerate of the piston position file
+int file_samplerate = 125; //the samplerate of the piston position file
 #define piston_timesteps 10000//the number of timesteps in the piston file
 int piston_counter;
-double piston_positions[piston_timesteps];
-double piston_position = 0; //the starting position of the piston
-double piston_position_p; //piston position at the previous timestep
+double piston_ux[piston_timesteps];
 double U_X = 0.; //the speed of the piston
 //piston parameters 
 
 void read_piston_data(){
   int count = 0;
+  double piston_positions[piston_timesteps];
   FILE *file;
   file = fopen(piston_file, "r");
   if(!file)
@@ -67,15 +66,12 @@ void read_piston_data(){
     count++;
   }
   fclose(file);
-  double start_offset = piston_positions[0];
-  for (int i=0;i<count;i++){
-    piston_positions[i] -= start_offset;
+  for (int i=0;i<count-1;i++){
+    piston_ux[i] = (piston_positions[i+1]-piston_positions[i])*file_samplerate;
   }
-  piston_position_p = piston_positions[0];
-  piston_position = piston_positions[0];
 }
 
-event setup_piston_positions(i=0){
+event setup_probe_positions(i=0){
   int j = 0;
   for(j=0;j<n_extra_probe;j++){
     probe_positions[j] = extra_probe_positions[j];
@@ -195,14 +191,10 @@ The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
 */
 event piston (i++, first) {
-  piston_counter = floor(t*100);
-  double counter_remainder = 0;
-  counter_remainder = t*100.-piston_counter;
-  piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
+  piston_counter = floor(t*file_samplerate);
   //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
-  U_X = (piston_position-piston_position_p)/dt;
-  piston_position_p = piston_position;
-  u.n[left] = dirichlet(U_X); 
+  U_X = piston_ux[piston_counter];
+  u.n[left] = dirichlet(U_X);
 }
 
 event surface_probes(t+=0.01){
@@ -210,13 +202,13 @@ event surface_probes(t+=0.01){
   sprintf(filename, "%s/surface_probes.csv", results_folder);
   FILE *fp = fopen(filename, "a");
     if (i==0){
-      fprintf(fp, "time");
+      fprintf(fp, "time, U_X");
       for (int j = 0;j<n_probes;j++){
         fprintf(fp, ", %f", probe_positions[j]);    
       }
       fprintf(fp, "\n");
   }
-  fprintf(fp, "%f", t);
+  fprintf(fp, "%f, %f", t, U_X);
   heights(f, h);
   double min_height; //vertical distance from the center of the cell to the air water interface
   double surface_elevation=0;

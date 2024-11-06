@@ -15,9 +15,9 @@ the parameters for the wave are from
 #include "layered/perfs.h"
 
 #include "view.h"
- 
+#if _OPENMP
 #include "output_pvd.h"
-
+#endif
 //#include "display.h"
 double Tend = 20;    //the end time of the simulation
 double Lx = 7; //The length of the simulation domain
@@ -39,15 +39,11 @@ char vts_folder[50]; //the locaton to save the vtu files
 
 //piston file 
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
-char piston_file[40];
-int file_samplerate = 100; //the samplerate of the piston position file
-#define piston_timesteps 10000//the number of timesteps in the piston file
-double piston_positions[piston_timesteps];
-double piston_position = 0; //the starting position of the piston
-double piston_position_p=0; //piston position at the previous timestep
 double U_X = 0.; //the speed of the piston
-double freq = 1.45;
-double max_speed = 0.2;
+double piston_f = 1.425;
+double piston_amplitude = 0.042*0.308;
+double _2 = 2;
+double _4 = 4;
 //piston parameters 
 
 scalar pstn1[] = 0;
@@ -85,41 +81,13 @@ float piston_function(double x, double y, double y0, double y1, double Delta){
 }
 
 
-void read_piston_data(){
-  int count = 0;
-  FILE *file;
-  file = fopen(piston_file, "r");
-  if(!file)
-    {
-        perror("Error opening piston position file");
-    }
-  int _running=1;
-  while(_running && count< piston_timesteps ){
-    _running = fscanf(file, "%lf", &(piston_positions[count]));
-    piston_positions[count] /=100.; //convert to meters
-    count++;
-  }
-  fclose(file);
-  double start_offset = piston_positions[0];
-  for (int i=0;i<count;i++){
-    piston_positions[i] -= start_offset;
-  }
-  piston_position_p = piston_positions[0];
-  piston_position = piston_positions[0];
-}
-
 event piston_update(i++){
-  int piston_counter;
-  piston_counter = floor(t*100);
-  double ins_ = 1;
-  double counter_remainder = 0;
-  counter_remainder = t*100.*ins_-piston_counter;
-  piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
-  //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
-  U_X = (piston_position-piston_position_p)/dt;
-  
-  //U_X = sin(2*pi*freq*t)*max_speed;
-  piston_position_p = piston_position;
+  if (t<0.1){
+    U_X = 0;
+  }
+  else{
+  U_X = piston_amplitude*(_4/cosh(_2*t-0.2)/cosh(_2*t-0.2)*tanh(_2*t-0.2)*sin(2*pi*piston_f*t-0.34) + 2*piston_f*pi*cos(2*pi*piston_f*t-0.34)*tanh(_2*t-0.2)*tanh(_2*t-0.2));
+  }
   //u.n[left] = dirichlet(U_X*(pstn1[]+pstn2[]+pstn3[]+pstn4[]-pstn5[] - pstn6[] +pstn7[] - pstn8[] + pstn9[] + 1.5*pstn10[]+ 2*pstn11[]+2.5*pstn12[]+pstn13[]+pstn14[])); 
   u.n[left] = dirichlet(U_X);
 }
@@ -170,6 +138,7 @@ event init (i = 0)
 int main(int argc, char *argv[])
   {
     //set LEVEL, layers and run number from command line args
+  nl = nl_;
   for(int j=0;j<argc;j++){
     if (strcmp(argv[j], "-L") == 0) 
         {                 
@@ -183,13 +152,10 @@ int main(int argc, char *argv[])
     {                 
       nl = atoi(argv[j + 1]); 
     }
-    else
-    {
-      nl = nl_;
-    }
   }
-
+  #if _MPI
   dimensions(3);
+  #endif
   //make folders for saving the results
   sprintf(results_folder, "results/run%d/LEVEL%d_layers%d", run_number, LEVEL, nl);
   sprintf(vts_folder, "%s/vts", results_folder);
@@ -214,11 +180,6 @@ int main(int argc, char *argv[])
     printf("copied script to results folder\n");
   }
 
-  //piston data
-  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
-  printf("%s\n", piston_file);
-  read_piston_data();
-  
   N = 1<<LEVEL;
   L0 = Lx;
   G = g;
@@ -245,7 +206,7 @@ int main(int argc, char *argv[])
 event output_field (t <= Tend; t += 1)
 {
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
-    static int j = 0;
+    static int j;
     char name[100];
     sprintf(name, "%s/field_%.6i.vts",vts_folder, j++);
     fprintf(stdout, "written to: %s\n", name);

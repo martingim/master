@@ -43,7 +43,7 @@ char vtu_folder[50]; //the locaton to save the vtu files
 //piston file 
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
 char piston_file[40];
-int file_samplerate = 125; //the samplerate of the piston position file
+int file_samplerate = 100; //the samplerate of the piston position file
 #define piston_timesteps 10000//the number of timesteps in the piston file
 int piston_counter;
 double piston_ux[piston_timesteps];
@@ -67,7 +67,7 @@ void read_piston_data(){
   }
   fclose(file);
   for (int i=0;i<count-1;i++){
-    piston_ux[i] = (piston_positions[i+1]-piston_positions[i])*file_samplerate;
+    piston_ux[i] = (piston_positions[i+1]-piston_positions[i])*file_samplerate*4.4;
   }
 }
 
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
   }
 
   //piston data
-  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
+  sprintf(piston_file, "piston_files/%d/padle_ut.dat", run_number);
   printf("%s\n", piston_file);
   read_piston_data();
   

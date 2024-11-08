@@ -17,22 +17,68 @@ the parameters for the wave are from
 #include "output_pvd.h"
 
 //#include "display.h"
+
+int set_n_threads = 4; //set number of threads manually
+int LEVEL = 9;      //the grid resolution in x direction Nx = 2**LEVEL
+
 double Tend = 10;    //the end time of the simulation
 double Lx = 24.6; //The length of the simulation domain
-double g = 9.81;
-int LEVEL = 9;      //the grid resolution in x direction Nx = 2**LEVEL
+#define nl_ 10  //the default number of layers if none are given as command line arguments
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
                     //a regular distribution. the rest fo the layers follow a geometric distribution.
+
 double h_ = 0.6;    //water depth
-int set_n_threads = 6; //set number of threads manually
-#define nl_ 10  //the default number of layers if none are given as command line arguments
-#define g_ g
+
+// piston file
+#define padle_ut 1
+int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
+int file_samplerate = 100; //the samplerate of the piston position file
+#define piston_timesteps 10000//the number of timesteps in the piston file
+int piston_counter;
+double piston_ux[piston_timesteps];
+double U_X = 0.; //the speed of the piston
+//piston parameters 
 
 char results_folder[40]; //the location to save the results
 char vts_folder[50]; //the locaton to save the vtu files
 //surface probes
 double probe_positions[144] = {8.0,10.048,10.745,11.498};
 int n_probes = 144;
+
+
+void read_piston_data(){
+  char piston_file[40];
+  #if padle_ut
+  sprintf(piston_file, "piston_files/%d/padle_ut.dat", run_number);
+  #else
+  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
+  #endif
+
+  printf("piston file:%s\n", piston_file);
+
+  int count = 0;
+  double piston_positions[piston_timesteps];
+  FILE *file;
+  file = fopen(piston_file, "r");
+  if(!file)
+    {
+        perror("Error opening piston position file");
+    }
+  int _running=1;
+  while(_running && count< piston_timesteps ){
+    _running = fscanf(file, "%lf", &(piston_positions[count]));    
+    #if padle_ut
+    piston_positions[count] *=0.044; //convert to meters
+    #else
+    piston_positions[count] /=100.; //convert to meters
+    #endif
+    count++;
+  }
+  fclose(file);
+  for (int i=0;i<count-1;i++){
+    piston_ux[i] = (piston_positions[i+1]-piston_positions[i])*file_samplerate;//calculate the piston velocity
+  }
+}
 
 event setup_probe_positions(i=0){
   double probe_x = 0.1;
@@ -42,20 +88,14 @@ event setup_probe_positions(i=0){
   }
 }
 
-//piston parameters
-int run_number = 1;
-double piston_f = 1.425;//the frequency of the piston movement
-double piston_amplitude = 0.042*0.308;
-double U_X = 0.; //the speed of the piston
 
+double asdf = 1.;
 event piston_update(i++){
-  if (t<0.1){
-    U_X = 0;
-  }
-  else{
-  U_X = piston_amplitude*(4/cosh(2*t-0.2)/cosh(2*t-0.2)*tanh(2*t-0.2)*sin(2*pi*piston_f*t-0.34) + 2*piston_f*pi*cos(2*pi*piston_f*t-0.34)*tanh(2*t-0.2)*tanh(2*t-0.2));
-  }
-  u.n[left] = dirichlet(U_X);
+  piston_counter = floor(t*file_samplerate);
+  //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
+  //U_X = piston_ux[piston_counter];
+
+  u.n[left] = dirichlet(piston_ux[piston_counter]*asdf);
 }
 
 event init (i = 0)
@@ -123,10 +163,9 @@ int main(int argc, char *argv[])
 
   origin (0, h_);
   
-  //origin (0, h_);
   N = 1<<LEVEL;
   L0 = Lx;
-  G = g;
+  G = 9.81;
   breaking = 0.1;
   CFL_H = .5;
   TOLERANCE = 10e-5;
@@ -142,7 +181,7 @@ int main(int argc, char *argv[])
   #elif _MPI
   fprintf(stderr, "npe:%d\n", npe());
   #endif
-
+  read_piston_data();
   run();
 }
 

@@ -9,7 +9,7 @@ account using the "reduced gravity approach". */
 #include "two-phase.h"
 #include "navier-stokes/conserving.h"
 #include "reduced.h"
-#include "output_vtu_bin.h"
+#include "output_vtu_foreach.h"
 int vtucount = 0;
 
 /**
@@ -140,24 +140,31 @@ event logfile (i++)
   printf ("%g %g %g\n", t/(k_/sqrt(g_*k_)), rho1*ke/2., rho1*g_*gpe + 0.125);
 }
 
-
-void save_vtu ( int nf, int j)
-{
-  char name[80];
-  FILE * fp ;
-  sprintf(name, "RES_VTK/res_%4.4d.vtu",j);
-  //nf > 0 ? sprintf(name, "RES_VTK/res_n%3.3d_%4.4d.vtu",pid(),j) : sprintf(name, "RES_VTK/res_%4.4d.vtu",j);
-  fp = fopen(name, "w"); 
-  output_vtu_bin_foreach ((scalar *) {f,p}, (vector *) {u}, N, fp, false); 
-  fclose (fp);
+//save unordered mesh
+event vtu(t+=1, last){
+  printf("Saving vtu file\n");
+  char filename[100];
+  sprintf(filename, "TIME-%05.0f", (t*100));
+  output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
 }
 
+// void save_vtu ( int nf, int j)
+// {
+//   char name[80];
+//   FILE * fp ;
+//   sprintf(name, "RES_VTK/res_%4.4d.vtu",j);
+//   //nf > 0 ? sprintf(name, "RES_VTK/res_n%3.3d_%4.4d.vtu",pid(),j) : sprintf(name, "RES_VTK/res_%4.4d.vtu",j);
+//   fp = fopen(name, "w"); 
+//   output_vtu_bin_foreach ((scalar *) {f,p}, (vector *) {u}, N, fp, false); 
+//   fclose (fp);
+// }
 
-event logfilevtu (t=0.0;t<=10;t+=0.04) 
-{
-  save_vtu(0,vtucount);
-  vtucount += 1;
-}
+
+// event logfilevtu (t=0.0;t<=10;t+=0.04) 
+// {
+//   save_vtu(0,vtucount);
+//   vtucount += 1;
+// }
 
 /**
 ## Mesh adaptation

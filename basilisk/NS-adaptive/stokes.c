@@ -1,10 +1,10 @@
 /**
-# Breaking Stokes wave
+# intialised Stokes wave
 
 We solve the two-phase Navier--Stokes equations using a
 momentum-conserving transport of each phase. Gravity is taken into
 account using the "reduced gravity approach". */
-
+#include "adapt_wavelet_leave_interface.h"
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
 #include "navier-stokes/conserving.h"
@@ -14,11 +14,12 @@ account using the "reduced gravity approach". */
 int vtucount = 0;
 
 /**
-The primary parameters are the wave steepness $ak$ and the Reynolds
-number. */
-#define TREE 0
+The primary parameters are the wave steepness $ak$ and the wavenumber
+*/
 double ak = 0.17;
-int LEVEL = 7;
+int LEVEL = 5;
+int max_LEVEL = 8;
+int padding =  2;
 double Lx = 0.7903377744879982;
 
 vector h[]; //scalar field of the distance from the surface, using heights.h
@@ -31,13 +32,7 @@ double probe_positions[] = {0.00001};
 The error on the components of the velocity field used for adaptive
 refinement. */
 
-double uemax = 0.005;
-
-/**
-The density and viscosity ratios are those of air and water. */
-
-#define RATIO (1./850.)
-#define MURATIO (17.4e-6/8.9e-4)
+double uemax = 0.05;
 
 /**
 The wave number, fluid depth and acceleration of gravity are set to
@@ -57,7 +52,7 @@ int main (int argc, char * argv[])
   for(int j=0;j<argc;j++){
     if (strcmp(argv[j], "-L") == 0) 
     {                 
-      LEVEL = atoi(argv[j + 1]);
+      max_LEVEL = atoi(argv[j + 1]);
     }
   }
   sprintf(results_folder, "results/LEVEL%d", LEVEL);
@@ -91,15 +86,7 @@ int main (int argc, char * argv[])
   mu2 = 17.4e-6;
   G.y = -g_;
 
-  /**
-  When we use adaptive refinement, we start with a coarse mesh which
-  will be refined as required when initialising the wave. */
-  
-#if TREE  
-  N = 32;
-#else
   N = 1 << LEVEL;
-#endif
   DT = 1e-2;
   run();
 }
@@ -114,34 +101,21 @@ using the third-order Stokes wave solution. */
 
 event init (i = 0)
 {
-  if (!restore ("restart")) {
-
-    /**
-    We need to make sure that fields are properly initialised before
-    refinement below, otherwise a
-    [-catch](/src/README#tracking-floating-point-exceptions) exception
-    will be triggered when debugging. */
-
-    event ("properties");
     
-    do {
-      fraction (f, wave(x,y));
-      foreach()
-	foreach_dimension()
-	  u.x[] = u_x(x,y) * f[];
-    }
-
-    /**
-    On trees, we repeat this initialisation until mesh adaptation does
-    not refine the mesh anymore. */
-
-#if TREE
-    while (adapt_wavelet ({f,u},
-			  (double[]){0.01,uemax,uemax,uemax}, LEVEL, 5).nf);
-#else
-    while (0); // to match 'do' above
-#endif
+  fraction (f, wave(x, y)); //set the water depth
+  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax,uemax,uemax, uemax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
+    fraction (f, wave(x, y)); //set the water level on the refined mesh
   }
+  foreach()
+    foreach_dimension()
+      u.x[] = u_x(x,y) * f[];
+  
+
+  /**
+  On trees, we repeat this initialisation until mesh adaptation does
+  not refine the mesh anymore. */
+
+
 }
 
 // event profiles (t += T0/4.; t <= 2.5*T0) {
@@ -170,35 +144,10 @@ event vtu(t+=.1, last){
   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
 }
 
-// void save_vtu ( int nf, int j)
-// {
-//   char name[80];
-//   FILE * fp ;
-//   sprintf(name, "RES_VTK/res_%4.4d.vtu",j);
-//   //nf > 0 ? sprintf(name, "RES_VTK/res_n%3.3d_%4.4d.vtu",pid(),j) : sprintf(name, "RES_VTK/res_%4.4d.vtu",j);
-//   fp = fopen(name, "w"); 
-//   output_vtu_bin_foreach ((scalar *) {f,p}, (vector *) {u}, N, fp, false); 
-//   fclose (fp);
-// }
-
-
-// event logfilevtu (t=0.0;t<=10;t+=0.04) 
-// {
-//   save_vtu(0,vtucount);
-//   vtucount += 1;
-// }
-
-/**
-## Mesh adaptation
-
-On trees, we adapt the mesh according to the error on volume fraction
-and velocity. */
-
-#if TREE
 event adapt (i++) {
-  adapt_wavelet ({f,u}, (double[]){0.01,uemax,uemax,uemax}, LEVEL, 5);
+  adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax, uemax, uemax, uemax}, max_LEVEL, LEVEL,padding);
 }
-#endif
+
 
 event surface_probes(t+=0.01, t<T0){
   char filename[100];

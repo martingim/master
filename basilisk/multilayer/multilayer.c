@@ -18,14 +18,16 @@ the parameters for the wave are from
 #include "output_pvd.h"
 
 double ak = 0.16;   //wave steepness
-double Tend = 5;    //the end time of the simulation
+double Tend = 100;    //the end time of the simulation
 double Lx = 0.7903377744879982; //The length of the simulation domain
 double k = 7.95;    //the wavenumber
 double g = 9.81;
 int LEVEL = 7;      //the grid resolution in x direction Nx = 2**LEVEL
-double rmin = 0.5;  //rmin the relative height of the top layer compared to 
+double rmin = 0.3;  //rmin the relative height of the top layer compared to 
 double h_ = 0.6;                   //a regular distribution. the rest fo the layers follow a 
-char save_location[] = "./";                   //geometric distribution.
+                                   //geometric distribution.
+char results_folder[40]; //the location to save the results
+char vts_folder[50]; //the locaton to save the vtu files
 
 #define nl_ 10  //the default number of layers if none are given as command line arguments
 #define k_ k
@@ -70,29 +72,59 @@ event init (i = 0)
 
 int main(int argc, char *argv[])
   {
-  if (argc>1)
-    LEVEL = atoi(argv[1]);
-    if (argc>2)
-      nl = atoi(argv[2]);
-    else
-      nl = nl_;
+  nl=nl_;
+  for(int j=0;j<argc;j++){
+    if (strcmp(argv[j], "-L") == 0) 
+    {                 
+      LEVEL = atoi(argv[j + 1]);
+    }
+    if (strcmp(argv[j], "-nl") == 0)
+    {                
+      nl = atoi(argv[j + 1]); 
+    }
+  }
+
+  sprintf(results_folder, "results/LEVEL%d_layers%d", LEVEL, nl);
+  sprintf(vts_folder, "%s/vts", results_folder);
   
+  char remove_old_results[100];
+  sprintf(remove_old_results, "rm -r %s", results_folder);
+  if (system(remove_old_results)==0){
+    printf("removed old results in:%s\n", results_folder);
+  }
+
+  char make_results_folder[100];
+  sprintf(make_results_folder, "mkdir -p %s", vts_folder);
+  if (system(make_results_folder)==0){
+    printf("made results folder:%s\n", results_folder);
+  }
+  
+  
+  //copy the script to the results folder for later incpection if needed
+  char copy_script[100];
+  sprintf(copy_script, "cp multilayer.c %s/multilayer.c", results_folder);
+  if (system(copy_script)==0){
+    printf("copied script to results folder\n");
+  }
+
+
+
   origin (-Lx/2., h_);
   periodic(right);
   N = 1<<LEVEL;
   L0 = Lx;
   G = g;
   breaking = 0.1;
-  CFL_H = .5;
+  CFL_H = .1;
   TOLERANCE = 10e-5;
-  //theta_H = 0.51;
+  theta_H = 0.51;
   run();
 }
 
 event save_velocity(t += Tend; t<=Tend)
 {
   char filename[200];
-  sprintf(filename, "%svelocities_nx%d_nl%d_timestep_%d.csv", save_location, 1<<LEVEL, nl, i);
+  sprintf(filename, "%svelocities_nx%d_nl%d_timestep_%d.csv", results_folder, 1<<LEVEL, nl, i);
   fprintf(stderr, "saving results to:%s\n", filename);
   FILE *fp = fopen(filename, "w"); //if at the first timestep overwrite the previous file, can later add run parameters here
   fprintf(fp, "\"Time\",\"layer\",\"Points:0\",\"Points:1\",\"Points:2\",\"u.x\",\"u.z\",\"eta\"\n");
@@ -107,10 +139,10 @@ event save_velocity(t += Tend; t<=Tend)
   fclose(fp); 
 }
 
-event save_energy(i++)
+event save_energy(t+=1)
 {
   char filename[200];
-  sprintf(filename, "%senergy_nx%d_nl%d.csv", save_location, 1<<LEVEL, nl);
+  sprintf(filename, "%senergy_nx%d_nl%d.csv", results_folder, 1<<LEVEL, nl);
   static FILE * fp = fopen(filename, "w");
   double gpe = 0.;
   double ke = 0.;
@@ -175,12 +207,12 @@ event gnuplot (t = Tend) {
   plot_profile (t, fp);
 }
 
-event output_field (t <= Tend; t += .1)
+event output_field (t <= Tend; t+=1)
 {
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
     static int j = 0;
     char name[100];
-    sprintf(name, "field_%.6i.vts", j++);
+    sprintf(name, "%s/field_%.6i.vts", vts_folder, j++);
     fprintf(stdout, "written to: %s\n", name);
     FILE* fp = fopen(name, "w");
     output_vts_ascii_all_layers(fp, {eta,h,u}, N);
@@ -189,12 +221,12 @@ event output_field (t <= Tend; t += .1)
     omp_set_num_threads(6);
     #endif
 }
-// gauges to compare the surface elevation
-// Gauge gauges[] = {
-//   {"X_0",  0},
-//   {NULL}
-// };
+//gauges to compare the surface elevation
+Gauge gauges[] = {
+  {"X_0",  0},
+  {NULL}
+};
 
 
-// event output (i += 2; t <= Tend)
-//   output_gauges (gauges, {eta});
+event output (t +=0.01 ; t <= Tend)
+  output_gauges (gauges, {eta});

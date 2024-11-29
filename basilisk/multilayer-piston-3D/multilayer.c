@@ -45,40 +45,9 @@ double piston_amplitude = 0.042*0.308;
 double _2 = 2;
 double _4 = 4;
 //piston parameters 
-
-scalar pstn1[] = 0;
-scalar pstn2[] = 0;
-scalar pstn3[] = 0;
-scalar pstn4[] = 0;
-scalar pstn5[] = 0;
-scalar pstn6[] = 0;
-scalar pstn7[] = 0;
-scalar pstn8[] = 0;
-scalar pstn9[] = 0;
-scalar pstn10[] = 0;
-scalar pstn11[] = 0;
-scalar pstn12[] = 0;
-scalar pstn13[] = 0;
-scalar pstn14[] = 0;
-
-//setup the piston fraction on the pstn scalars
-float piston_function(double x, double y, double y0, double y1, double Delta){
-    if (x>Lx/2){
-      return 0;
-    }
-    if ((y<y0-Delta/2.)||(y>y1+Delta/2.)){
-      return 0.;
-    }
-    else if ((y-y0)<Delta/2.) {
-      return 0.5-(y0-y)/Delta;
-    }
-    else if ((y1-y)<Delta/2.) {
-      return 0.5-(y-y1)/Delta;
-    }
-    else{
-      return 1.;
-    }
-}
+double piston_width = 0.5;
+scalar pstn1[],pstn2[],pstn3[],pstn4[],pstn5[],pstn6[],pstn7[],pstn8[],pstn9[],pstn10[],pstn11[],pstn12[],pstn13[],pstn14[];
+scalar * pistons = {pstn1,pstn2,pstn3,pstn4,pstn5,pstn6,pstn7,pstn8,pstn9,pstn10,pstn11,pstn12,pstn13,pstn14};
 
 
 event piston_update(i++){
@@ -88,8 +57,8 @@ event piston_update(i++){
   else{
   U_X = piston_amplitude*(_4/cosh(_2*t-0.2)/cosh(_2*t-0.2)*tanh(_2*t-0.2)*sin(2*pi*piston_f*t-0.34) + 2*piston_f*pi*cos(2*pi*piston_f*t-0.34)*tanh(_2*t-0.2)*tanh(_2*t-0.2));
   }
-  //u.n[left] = dirichlet(U_X*(pstn1[]+pstn2[]+pstn3[]+pstn4[]-pstn5[] - pstn6[] +pstn7[] - pstn8[] + pstn9[] + 1.5*pstn10[]+ 2*pstn11[]+2.5*pstn12[]+pstn13[]+pstn14[])); 
-  u.n[left] = dirichlet(U_X);
+  u.n[left] = dirichlet(U_X*(pstn1[]+pstn2[]+pstn3[]+pstn4[]-pstn5[] - pstn6[] +pstn7[] - pstn8[] + pstn9[] + 1.5*pstn10[]+ 2*pstn11[]+2.5*pstn12[]+pstn13[]+pstn14[])); 
+  //u.n[left] = dirichlet(U_X);
 }
 
 event init (i = 0)
@@ -107,34 +76,13 @@ event init (i = 0)
       h[] = (max(- zb[], 0.))*beta[point.l];
     }
   }
-  
-  // foreach() {
-  //  zb[] = -h_;
-  //  foreach_layer(){
-  //    h[] = h_/nl;
-  //  }
-  // }
 
-  foreach()
-  {
-    pstn1[]  =  piston_function(x, y, 0., 0.5, Delta);
-    pstn2[]  =  piston_function(x, y, 0.5, 1., Delta);
-    pstn3[]  =  piston_function(x, y, 1., 1.5, Delta);
-    pstn4[]  =  piston_function(x, y, 1.5, 2., Delta);
-    pstn5[]  =  piston_function(x, y, 2., 2.5, Delta);
-    pstn6[]  =  piston_function(x, y, 2.5, 3., Delta);
-    pstn7[]  =  piston_function(x, y, 3., 3.5, Delta);
-    pstn8[]  =  piston_function(x, y, 3.5, 4., Delta);
-    pstn9[]  =  piston_function(x, y, 4., 4.5, Delta);
-    pstn10[] =  piston_function(x, y, 4.5, 5., Delta);
-    pstn11[] =  piston_function(x, y, 5., 5.5, Delta);
-    pstn12[] =  piston_function(x, y, 5.5, 6., Delta);
-    pstn13[] =  piston_function(x, y, 6., 6.5, Delta);
-    pstn14[] =  piston_function(x, y, 6.5, 7., Delta);
+  int piston_i =0; 
+  for (scalar pstn in pistons){
+    fraction(pstn, piston_width/2.-fabs(y-(piston_i+0.5)*piston_width));
+    piston_i += 1;
   }
-
 }
-
 int main(int argc, char *argv[])
   {
     //set LEVEL, layers and run number from command line args

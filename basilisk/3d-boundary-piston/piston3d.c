@@ -20,18 +20,19 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 2; //0 to use all available threads for OPENMP
+int set_n_threads = 6; //0 to use all available threads for OPENMP
 int LEVEL = 6;
-int max_LEVEL = 12; //Default level if none is given as command line argument
+int max_LEVEL = 10; //Default level if none is given as command line argument
 int padding = 0;
 
 #define _h 0.5//water depth
-double l = 20; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
-double domain_width = 1.5; //the width of the simulation domain
+double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double domain_length = 14;
+double domain_width = 7; //the width of the simulation domain
 double domain_height = 1.0; //the height of the simulation domain
-double femax = 0.01;
-double uemax = 0.01;
-double pemax = .01;
+double femax = 0.1;
+double uemax = 0.1;
+double pemax = .1;
 double Tend = 10.;
 
 double probe_positions[144];
@@ -54,12 +55,9 @@ double piston_position = 0; //the starting position of the piston
 double piston_position_p; //piston position at the previous timestep
 double U_X = 0.; //the speed of the piston
 //piston parameters 
-#define PISTON1 ((z>0.0)&&(z<0.5))
-#define PISTON2 ((z>0.5)&&(z<1.0))
-#define PISTON3 ((z>1.0)&&(z<1.5))
-scalar pstn1[];
-scalar pstn2[];
-scalar pstn3[];
+double piston_width = 0.5;
+scalar pstn1[],pstn2[],pstn3[],pstn4[],pstn5[],pstn6[],pstn7[],pstn8[],pstn9[],pstn10[],pstn11[],pstn12[],pstn13[],pstn14[];
+scalar * pistons = {pstn1,pstn2,pstn3,pstn4,pstn5,pstn6,pstn7,pstn8,pstn9,pstn10,pstn11,pstn12,pstn13,pstn14};
 
 void read_piston_data(){
   int count = 0;
@@ -72,7 +70,7 @@ void read_piston_data(){
   int _running=1;
   while(_running && count< piston_timesteps ){
     _running = fscanf(file, "%lf", &(piston_positions[count]));
-    piston_positions[count] /=100.; //convert to meters
+    piston_positions[count] *=0.044; //convert to meters
     count++;
   }
   fclose(file);
@@ -84,7 +82,7 @@ void read_piston_data(){
   piston_position = piston_positions[0];
 }
 
-event setup_piston_positions(i=0){
+event setup_probe_positions(i=0){
   int j = 0;
   for(j=0;j<n_extra_probe;j++){
     probe_positions[j] = extra_probe_positions[j];
@@ -100,11 +98,12 @@ void mask_domain(){
   //mask away the top and side of the domain 
   mask(y > domain_height - _h ? top : none);
   mask(z > domain_width ? back : none);
+  mask(x > domain_length ? right: none);
   u.n[back] = dirichlet(0.);
   u.n[front]= dirichlet(0.);
   u.n[top]  = neumann(0.);
-  p[top]    = dirichlet(0.);
-  pf[top]   = dirichlet(0.);
+  //p[top]    = dirichlet(0.);
+  //pf[top]   = dirichlet(0.);
 }
 
 int main(int argc, char *argv[]) {
@@ -146,10 +145,11 @@ int main(int argc, char *argv[]) {
   }
 
   //piston data
-  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
+  sprintf(piston_file, "piston_files/%d/padle_ut.dat", run_number);
   printf("%s\n", piston_file);
   read_piston_data();
-  
+  for (scalar pstn in pistons)
+    pstn.refine = pstn.prolongation = fraction_refine;
   L0 = l;
   //f.sigma = 0.078;
   rho1 = 997;
@@ -179,15 +179,16 @@ int main(int argc, char *argv[]) {
 event init (i = 0) {
   origin(0., -_h, 0.);
   mask_domain();
-  //refine((fabs(y)<l/N*0.49)&&(level<=max_LEVEL));
-  //mvtu(42);
   fraction (f, - y); //set the water depth _h
   while (adapt_wavelet_leave_interface({u.x, u.y, u.z, p},{f},(double[]){uemax,uemax,uemax, pemax, femax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
     fraction (f, - y); //set the water level on the refined mesh
+    int piston_i=0;
+    for (scalar pstn in pistons){
+      fraction(pstn, piston_width/2.-fabs(z-(piston_i+0.5)*piston_width));
+      piston_i +=1;
+    }
   }
-  fraction(pstn1, PISTON1);
-  fraction(pstn2, PISTON2);
-  fraction(pstn3, PISTON3);
+
   foreach(){
     pf[] = 0;
     p[] = pf[];
@@ -216,9 +217,7 @@ event piston (i++, first) {
   //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
   U_X = (piston_position-piston_position_p)/dt;
   piston_position_p = piston_position;
-  fraction(pstn1, PISTON1);
-  fraction(pstn2, PISTON2);
-  fraction(pstn3, PISTON3);
+  
   u.n[left] = dirichlet(U_X*pstn1[]+0*pstn2[]-U_X*pstn3[]); 
 }
 
@@ -236,7 +235,7 @@ event surface_probes(t+=0.01){
   fprintf(fp, "%f", t);
   heights(f, h);
   double min_height; //vertical distance from the center of the cell to the air water interface
-  double surface_elevation;
+  double surface_elevation=0;
   for (int probe_n=0;probe_n<n_probes;probe_n++){
     min_height=1;
     foreach(serial){
@@ -261,6 +260,9 @@ event vtu(t+=.1, last){
   char filename[100];
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
+
+  //output all the piston fields
+  //output_vtu((scalar *) {f,p,pstn1,pstn2,pstn3,pstn4,pstn5,pstn6,pstn7,pstn8,pstn9,pstn10,pstn11,pstn12,pstn13,pstn14}, (vector *) {u}, filename);
 }
 
 

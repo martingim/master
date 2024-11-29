@@ -441,8 +441,9 @@ void output_vts_ascii_all_layers(FILE* fp, scalar* list, int N)
   //   zcorr[j] = eta[j,0,0];
   // }
   int mi = 0;
-  foreach (serial){
+  foreach_vertex (serial){
     zcorr[mi] = eta[0,0,0];
+    //fprintf(stdout, "%f \n", eta[0,0,0]); 
     mi++;
   }
   int k;
@@ -453,6 +454,10 @@ void output_vts_ascii_all_layers(FILE* fp, scalar* list, int N)
         if (h[0,0,k] < 1e-3){
           zcorr[k] = zcorr[k] - h[-1,-1,i];
         } else{ 
+          
+          // if(x>0.37){
+            
+          // }
           zcorr[k] = zcorr[k] - h[0,0,i];
         }
         k++;

@@ -1,6 +1,6 @@
 /*
  * sets the left boundary condition to the speed of the piston movement
- * reads piston position data from file. Set up for file with 100hz sample rate 
+ * reads piston position data from file.
  */
 #include <sys/stat.h>
 #include <stdio.h>

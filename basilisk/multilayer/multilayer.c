@@ -17,10 +17,11 @@ the parameters for the wave are from
 #include "layered/perfs.h"
 #include "output_pvd.h"
 
-double ak = 0.16;   //wave steepness
-double Tend = 100;    //the end time of the simulation
-double Lx = 0.7903377744879982; //The length of the simulation domain
-double k = 7.95;    //the wavenumber
+double ak = 0.17;   //wave steepness
+double Tend = 10;    //the end time of the simulation
+double Lx = 0.78944413720585; //The length of the simulation domain 2*pi/k
+double k = 7.959;    //the wavenumber
+0.78944413720585
 double g = 9.81;
 int LEVEL = 7;      //the grid resolution in x direction Nx = 2**LEVEL
 double rmin = 0.3;  //rmin the relative height of the top layer compared to 
@@ -28,6 +29,8 @@ double h_ = 0.6;                   //a regular distribution. the rest fo the lay
                                    //geometric distribution.
 char results_folder[40]; //the location to save the results
 char vts_folder[50]; //the locaton to save the vtu files
+char guage_name[50];
+
 
 #define nl_ 10  //the default number of layers if none are given as command line arguments
 #define k_ k
@@ -98,7 +101,7 @@ int main(int argc, char *argv[])
   if (system(make_results_folder)==0){
     printf("made results folder:%s\n", results_folder);
   }
-  
+  sprintf(guage_name, "%s/X_0", results_folder);
   
   //copy the script to the results folder for later incpection if needed
   char copy_script[100];
@@ -223,7 +226,7 @@ event output_field (t <= Tend; t+=1)
 }
 //gauges to compare the surface elevation
 Gauge gauges[] = {
-  {"X_0",  0},
+  {guage_name,  0},
   {NULL}
 };
 

@@ -16,6 +16,7 @@ int vtucount = 0;
 /**
 The primary parameters are the wave steepness $ak$ and the wavenumber
 */
+double T0 = 10;
 double ak = 0.17;
 int LEVEL = 5;
 int max_LEVEL = 8;
@@ -41,11 +42,10 @@ these values. *T0* is simulation duration */
 #define k_  7.95
 #define h_   0.6
 #define g_   9.81
-#define T0  10
 
 /**
-The program takes optional arguments which are the level of
-refinement, steepness and Reynolds numbers. */
+The program takes optional argument LEVEL 
+*/
 
 int main (int argc, char * argv[])
 {

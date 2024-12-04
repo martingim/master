@@ -30,9 +30,9 @@ double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/
 double domain_length = 14;
 double domain_width = 7; //the width of the simulation domain
 double domain_height = 1.0; //the height of the simulation domain
-double femax = 0.1;
-double uemax = 0.1;
-double pemax = .1;
+double femax = 0.2;
+double uemax = 0.2;
+double pemax = 0.2;
 double Tend = 10.;
 
 double probe_positions[144];
@@ -218,7 +218,7 @@ event piston (i++, first) {
   U_X = (piston_position-piston_position_p)/dt;
   piston_position_p = piston_position;
   
-  u.n[left] = dirichlet(U_X*pstn1[]+0*pstn2[]-U_X*pstn3[]); 
+  u.n[left] = dirichlet(U_X*pstn1[]); 
 }
 
 event surface_probes(t+=0.01){
@@ -239,7 +239,7 @@ event surface_probes(t+=0.01){
   for (int probe_n=0;probe_n<n_probes;probe_n++){
     min_height=1;
     foreach(serial){
-      if((fabs(x-probe_positions[probe_n])<Delta/2.0)&&(fabs(y)<0.1)){
+      if((fabs(x-probe_positions[probe_n])<Delta/2.0)&&(fabs(y)<0.1)&&(fabs(z-3.49)<Delta/2.)){
         if(h.y[] != nodata){
           if (fabs(min_height)>fabs(height(h.y[])*Delta)){
             min_height=height(h.y[])*Delta;

@@ -51,6 +51,8 @@ char vtu_folder[50]; //the locaton to save the vtu files
 
 int file_samplerate = 100; //the samplerate of the piston position file
 #define piston_timesteps 10000//the max number of timesteps in the piston file
+int pui=0;
+
 char piston_file[40];
 double piston_width = 0.5;
 double pstn1_u[piston_timesteps];
@@ -215,9 +217,11 @@ The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
 */
 event piston (i++, first) {
-  //int pui;
-  //pui = (int)floor(t*file_samplerate); //index of the piston velocity
-  u.n[left] = dirichlet(pstn1_u[(int)floor(t*file_samplerate)]*pstn1[]);
+  if (t>0.2777){
+    pui = (int)floor((t-0.277)*file_samplerate); //index of the piston velocity
+    printf("setting pui to:%d\n", pui);
+  }
+  u.n[left] = dirichlet(pstn1_u[(int)floor(t*file_samplerate)]*pstn1[]+pstn1_u[pui]*pstn2[]);
 }
 
 event surface_probes(t+=0.01){

@@ -20,14 +20,16 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 6; //0 to use all available threads for OPENMP
-int LEVEL = 6;
-int max_LEVEL = 10; //Default level if none is given as command line argument
+int set_n_threads = 2; //0 to use all available threads for OPENMP
+int LEVEL = 4;
+int max_LEVEL = 7; //Default level if none is given as command line argument
 int padding = 0;
 
+#define symmetric_ 1
+
 #define _h 0.5//water depth
-double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
-double domain_length = 14;
+double l = 7; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double domain_length = 7;
 double domain_width = 7; //the width of the simulation domain
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.2;
@@ -97,10 +99,15 @@ event setup_probe_positions(i=0){
 void mask_domain(){
   //mask away the top and side of the domain 
   mask(y > domain_height - _h ? top : none);
-  mask(z > domain_width ? back : none);
   mask(x > domain_length ? right: none);
-  u.n[back] = dirichlet(0.);
+  #if symmetric_
+  mask(z > domain_width/2. ? back : none);
+  #else
+  mask(z > domain_width ? back : none);
   u.n[front]= dirichlet(0.);
+  #endif
+
+  u.n[back] = dirichlet(0.);
   u.n[top]  = neumann(0.);
   //p[top]    = dirichlet(0.);
   //pf[top]   = dirichlet(0.);
@@ -201,7 +208,7 @@ And to minimise the error in the velocity field.
  */
 event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y, u.z, p},{f},(double[]){uemax, uemax, uemax, pemax, femax}, max_LEVEL, LEVEL,padding);
-  unrefine ((y>0.1));//unrefine the air
+  //unrefine ((y>0.1));//unrefine the air
 }
 
 

@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <string.h>
+#include "grid/octree.h"
 #include "utils.h"
 #include "adapt_wavelet_leave_interface_two_levels.h"
 #include "heights.h"
@@ -20,13 +21,15 @@
 
 int set_n_threads = 6; //0 to use all available threads for OPENMP
 int LEVEL = 4;
-int max_LEVEL = 8; //Default level if none is given as command line argument
+int max_LEVEL = 7; //Default level if none is given as command line argument
 int padding = 2;
-int EXTRA_PISTON_LEVEL = 3; //extra refinement around the piston to make it leak less 
+int EXTRA_PISTON_LEVEL = 0; //extra refinement around the piston to make it leak less 
 
 #define _h 0.6//water depth
 double l = 7; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
+double domain_length = 6;
+double domain_width = 7;
 double femax = 0.2;
 double uemax = 0.2;
 double pemax = .2;
@@ -46,18 +49,25 @@ int run_number = 1; //default run number if none is given in the command line pi
 char piston_file[40];
 int file_samplerate = 100; //the samplerate of the piston position file
 #define piston_timesteps 10000//the number of timesteps in the piston file
-
-double piston_positions[piston_timesteps];
+#define n_pistons 14
+double piston_positions[piston_timesteps][n_pistons];
 
 //piston parameters 
 #define piston_back_wall_offset 1. //the distance from the left of the domain to the front of the piston
 double piston_height = 0.2;   //height of the piston above the still water level
 double piston_bottom_clearance = 0.00; //piston distance above bottom
-#define piston_w .5 //width of the piston
-#define PISTON (1 -(piston_position<x) - (x<(piston_position-piston_w))-(y>piston_height)) //subtract conditions outside the piston
-scalar pstn[];
+double piston_position[n_pistons];
+double piston_position_p[n_pistons];
+int piston_number=0;
+#define piston_depth .2 //depth of the piston
+#define piston_width 0.5
+//#define PISTON (piston_width/2.-fabs(z-(piston_number+0.5)*piston_width)) -(piston_position[piston_number]<x) - (x<(piston_position[piston_number]-piston_depth))-(y>piston_height) //subtract conditions outside the piston
+#define PISTON intersection(intersection(piston_width/2.-fabs(z-(piston_number+0.5)*piston_width), piston_position[piston_number]-x), x-(piston_position[piston_number]-piston_depth))
+scalar pstn1[],pstn2[],pstn3[],pstn4[],pstn5[],pstn6[],pstn7[],pstn8[],pstn9[],pstn10[],pstn11[],pstn12[],pstn13[],pstn14[];
+scalar * pistons = {pstn1,pstn2,pstn3,pstn4,pstn5,pstn6,pstn7,pstn8,pstn9,pstn10,pstn11,pstn12,pstn13,pstn14};
 
 void read_piston_data(){
+  //This only take one piston position file as is
   int count = 0;
   FILE *file;
   file = fopen(piston_file, "r");
@@ -67,20 +77,21 @@ void read_piston_data(){
     }
   int _running=1;
   while(_running && count< piston_timesteps ){
-    _running = fscanf(file, "%lf", &(piston_positions[count]));
-    piston_positions[count] /=100.; //convert to meters
+    _running = fscanf(file, "%lf", &(piston_positions[count][0]));
+    piston_positions[count][0] *=0.044; //convert to meters
     count++;
   }
   fclose(file);
-  double start_offset = piston_positions[0];
+  double start_offset = piston_positions[0][0];
   for (int i=0;i<count;i++){
-    piston_positions[i] -= start_offset;
+    piston_positions[i][0] -= start_offset;
   }
-  piston_position_p = piston_positions[0];
-  piston_position = piston_positions[0];
+  piston_position_p[0] = piston_positions[0][0];
+  piston_position[0] = piston_positions[0][0];
 }
 
-event setup_piston_positions(i=0){
+event setup_probe_positions(i=0){
+  //should add second dimension here
   int j = 0;
   for(j=0;j<n_extra_probe;j++){
     probe_positions[j] = extra_probe_positions[j];
@@ -95,9 +106,16 @@ event setup_piston_positions(i=0){
 void mask_domain(){
   //mask away the top of the domain
   mask(y > domain_height - _h ? top : none);
+  mask(x > domain_length ? right: none);
+  mask(z > domain_width ? back : none);
+
   u.n[top]  = neumann(0.);
   p[top]    = dirichlet(0.);
   pf[top]   = dirichlet(0.);
+  u.n[back] = dirichlet(0.);
+  u.n[front] = dirichlet(0.);
+  u.n[right] = neumann(0.);
+  u.n[left] = neumann(0.);
 }
 
 int main(int argc, char *argv[]) {
@@ -117,7 +135,9 @@ int main(int argc, char *argv[]) {
             run_number = atoi(argv[j + 1]);    // The next value in the array is your value
         }  
   }
-  
+  for (scalar pstn in pistons){
+    pstn.refine = pstn.prolongation = fraction_refine;
+  }
   //make folders for saving the results
   sprintf(results_folder, "results/run%d/LEVEL%d_%d", run_number, max_LEVEL, EXTRA_PISTON_LEVEL);
   sprintf(vtu_folder, "%s/vtu", results_folder);
@@ -143,7 +163,7 @@ int main(int argc, char *argv[]) {
   }
 
   //piston data
-  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
+  sprintf(piston_file, "piston_files/%d/padle_ut.dat", run_number);
   printf("%s\n", piston_file);
   read_piston_data();
   
@@ -158,8 +178,6 @@ int main(int argc, char *argv[]) {
   DT = 0.01;
   u.n[bottom] = dirichlet(0.);
   u.t[bottom] = dirichlet(0.);
-  u.n[left] = dirichlet(0.);
-  u.n[right] = dirichlet(0.);
   u.n[top] = neumann(0.);
 #if _OPENMP
   int num_omp = omp_get_max_threads();
@@ -178,12 +196,24 @@ event init (i = 0) {
   //refine((fabs(y)<l/N*0.49)&&(level<=max_LEVEL));
   //mvtu(42);
   fraction (f, - y); //set the water depth _h
-  fraction (pstn, PISTON); //set the piston fraction
-  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL}).nf){  //for adapting more around the piston interface
-    fraction (f, - y); //set the water level on the refined mesh
-    fraction (pstn, PISTON); //set the piston fraction on the refined mesh
+  piston_number =0;
+  for (scalar pstn in pistons){
+    fraction (pstn, PISTON); //set the piston fraction
+    piston_number += 1;
   }
-  unrefine ((x < -0.1)&&(level>6));
+  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn1},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL}).nf){  //for adapting more around the piston interface
+    fraction (f, - y); //set the water level on the refined mesh
+    piston_number =0;
+    for (scalar pstn in pistons){
+      fraction (pstn, PISTON); //set the piston fraction
+      piston_number += 1;
+    }
+  }
+  for (scalar pstn in pistons){
+    fraction (pstn, PISTON); //set the piston fraction
+    piston_number += 1;
+  }
+  //unrefine ((x < -0.1)&&(level>6));
   foreach(){
     pf[] = 0;
     p[] = pf[];
@@ -195,12 +225,15 @@ The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
  */
 event adapt (i++){
-  adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
-  unrefine ((x>(piston_position+0.05))&&(level>=max_LEVEL));
-  unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
-  unrefine ((y<-0.4)&&(x>(piston_position+0.02))); //unrefine the bottom
-  unrefine ((y>0.1));
-  fraction(pstn, PISTON);
+  adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn1},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
+  //unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
+  //unrefine ((y<-0.4)&&(x>(piston_position+0.02))); //unrefine the bottom
+  //unrefine ((y>0.1));
+  piston_number =0;
+  for (scalar pstn in pistons){
+    fraction (pstn, PISTON); //set the piston fraction
+    piston_number += 1;
+  }
 
 }
 
@@ -209,23 +242,29 @@ event adapt (i++){
 The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
 */
+int piston_counter;
 event piston (i++, first) {
-  piston_counter = floor(t*100);
+  double U_X = 0;
+  piston_counter = floor(t*file_samplerate);
   double counter_remainder = 0;
-  counter_remainder = t*100.-piston_counter;
-  piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
-  //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
-  U_X = (piston_position-piston_position_p)/dt;
-  piston_position_p = piston_position;
-  fraction (pstn, PISTON);
-  foreach() {
-    u.y[] = u.y[]*(1 - pstn[]);
-    u.x[] = pstn[]*U_X + u.x[]*(1 - pstn[]);
+  counter_remainder = t*file_samplerate-piston_counter;
+  piston_number =0;
+  for (scalar pstn in pistons){
+    piston_position[piston_number] = piston_positions[piston_counter][piston_number] + (piston_positions[piston_counter+1][piston_number] -piston_positions[piston_counter][piston_number])*counter_remainder; //update the piston position
+    //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
+    U_X = (piston_position[piston_number]-piston_position_p[piston_number])/dt;
+    piston_position_p[piston_number] = piston_position[piston_number];
+    fraction (pstn, PISTON); //set the piston fraction
+    piston_number += 1;
+    foreach(){
+      u.y[] = u.y[]*(1 - pstn[]);
+      u.x[] = pstn[]*U_X + u.x[]*(1 - pstn[]);
+    }
   }
   //printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
 }
 
-event surface_probes(t+=0.01){
+event surface_probes(t+=0.1){
   char filename[100];
   sprintf(filename, "%s/surface_probes.csv", results_folder);
   FILE *fp = fopen(filename, "a");
@@ -259,11 +298,13 @@ event surface_probes(t+=0.01){
 }
 
 //save unordered mesh
-event vtu(t+=1, last){
+event vtu(t+=.1, last){
+  fprintf(stderr, "openmp threads:%d\n", omp_get_max_threads());
   printf("Saving vtu file\n");
   char filename[100];
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
-  output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
+  output_vtu((scalar *) {f,p,pstn1,pstn2,pstn3,pstn4,pstn5}, (vector *) {u}, filename);
+  fprintf(stderr, "openmp threads:%d\n", omp_get_max_threads());
 }
 
 
@@ -317,7 +358,7 @@ event show_progress(i++)
 }
 
 
-event profiling (i += 20) {
+event profiling (i += 1) {
   static FILE * fp = fopen ("profiling", "w");
   trace_print (fp, 1);
 }

@@ -1,0 +1,15 @@
+multlayer solver with boundary conditions from piston file
+multilayer large wavetank
+multilayer large wavetank multiple paddles
+
+
+check surface probes for all runs 
+
+change dimensions to 7x7    
+
+
+* test one large piston multilayer vs ns time and surface elevation
+* compare one piston scalar field to 14
+* change the piston to use only one field
+
+*compare boundary piston to stephane trick for normal and higher amplitude

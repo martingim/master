@@ -20,9 +20,9 @@
 
 int set_n_threads = 2; //0 to use all available threads for OPENMP
 int LEVEL = 6;
-int max_LEVEL = 12; //Default level if none is given as command line argument
+int max_LEVEL = 10; //Default level if none is given as command line argument
 int padding = 2;
-int EXTRA_PISTON_LEVEL = 3; //extra refinement around the piston to make it leak less 
+int EXTRA_PISTON_LEVEL = 0; //extra refinement around the piston to make it leak less 
 
 #define _h 0.6//water depth
 double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
@@ -70,7 +70,8 @@ void read_piston_data(){
   int _running=1;
   while(_running && count< piston_timesteps ){
     _running = fscanf(file, "%lf", &(piston_positions[count]));
-    piston_positions[count] /=100.; //convert to meters
+    //piston_positions[count] /=100.; //convert to meters
+    piston_positions[count] *=0.044; //convert to meters
     count++;
   }
   fclose(file);
@@ -145,7 +146,9 @@ int main(int argc, char *argv[]) {
   }
 
   //piston data
-  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
+  // sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
+  sprintf(piston_file, "piston_files/%d/padle_ut.dat", run_number);
+
   printf("%s\n", piston_file);
   read_piston_data();
   
@@ -163,6 +166,8 @@ int main(int argc, char *argv[]) {
   u.n[left] = dirichlet(0.);
   u.n[right] = dirichlet(0.);
   u.n[top] = neumann(0.);
+  pstn.refine = pstn.prolongation = fraction_refine;
+
 #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);

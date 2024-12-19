@@ -18,13 +18,13 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 6; //0 to use all available threads for OPENMP
+int set_n_threads = 2; //0 to use all available threads for OPENMP
 int LEVEL = 6;
-int max_LEVEL = 12; //Default level if none is given as command line argument
+int max_LEVEL = 10; //Default level if none is given as command line argument
 int padding = 2;
 
 #define _h 0.6//water depth
-double l = 25.6/2; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double l = 7; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.01;
 double uemax = 0.01;
@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
   u.t[bottom] = dirichlet(0.);
   u.n[left] = dirichlet(0.);
   u.n[left] = neumann(0.);
-  u.n[right] = dirichlet(0.);
+  u.n[right] = neumann(0.);
   u.n[top] = neumann(0.);
 #if _OPENMP
   int num_omp = omp_get_max_threads();

@@ -18,14 +18,14 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 2; //0 to use all available threads for OPENMP
+int set_n_threads = 1; //0 to use all available threads for OPENMP
 int LEVEL = 6;
 int max_LEVEL = 10; //Default level if none is given as command line argument
 int padding = 2;
 int EXTRA_PISTON_LEVEL = 0; //extra refinement around the piston to make it leak less 
 
 #define _h 0.6//water depth
-double l = 25.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double l = 7; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.01;
 double uemax = 0.01;
@@ -52,11 +52,12 @@ double piston_position = 0; //the starting position of the piston
 double piston_position_p; //piston position at the previous timestep
 double U_X = 0.; //the speed of the piston
 //piston parameters 
-#define piston_back_wall_offset 1. //the distance from the left of the domain to the front of the piston
+#define piston_back_wall_offset .1 //the distance from the left of the domain to the front of the piston
 double piston_height = 0.2;   //height of the piston above the still water level
 double piston_bottom_clearance = 0.00; //piston distance above bottom
 #define piston_w .2 //width of the piston
-#define PISTON (1 -(piston_position<x) - (x<(piston_position-piston_w))-(y>piston_height)) //subtract conditions outside the piston
+//#define PISTON (1 -(piston_position<x) - (x<(piston_position-piston_w))-(y>piston_height)) //subtract conditions outside the piston
+#define PISTON piston_position-x
 scalar pstn[];
 
 void read_piston_data(){
@@ -83,7 +84,7 @@ void read_piston_data(){
   piston_position = piston_positions[0];
 }
 
-event setup_piston_positions(i=0){
+event setup_probe_positions(i=0){
   int j = 0;
   for(j=0;j<n_extra_probe;j++){
     probe_positions[j] = extra_probe_positions[j];
@@ -160,11 +161,11 @@ int main(int argc, char *argv[]) {
   mu2 = 17.4e-6;
   G.y = - 9.81;
   N = 1 << LEVEL;
-  DT = 0.01;
+  DT = 0.1;
   u.n[bottom] = dirichlet(0.);
   u.t[bottom] = dirichlet(0.);
   u.n[left] = dirichlet(0.);
-  u.n[right] = dirichlet(0.);
+  u.n[right] = neumann(0.);
   u.n[top] = neumann(0.);
   pstn.refine = pstn.prolongation = fraction_refine;
 
@@ -201,15 +202,14 @@ event init (i = 0) {
 The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
  */
-event adapt (i++){
-  adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
-  unrefine ((x>(piston_position+0.05))&&(level>=max_LEVEL));
-  unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
-  unrefine ((y<-0.4)&&(x>(piston_position+0.02))); //unrefine the bottom
-  unrefine ((y>0.1));
-  fraction(pstn, PISTON);
-
-}
+  // event adapt (i++){
+  //   adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
+  //   unrefine ((x>(piston_position+0.05))&&(level>=max_LEVEL));
+  //   unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
+  //   unrefine ((y<-0.4)&&(x>(piston_position+0.02))); //unrefine the bottom
+  //   unrefine ((y>0.1));
+  //   fraction(pstn, PISTON);
+  // }
 
 
 /**
@@ -229,6 +229,7 @@ event piston (i++, first) {
     u.y[] = u.y[]*(1 - pstn[]);
     u.x[] = pstn[]*U_X + u.x[]*(1 - pstn[]);
   }
+  u.n[left]=dirichlet(U_X);
   //printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
 }
 
@@ -266,7 +267,7 @@ event surface_probes(t+=0.01){
 }
 
 //save unordered mesh
-event vtu(t+=1, last){
+event vtu(t+=0.1, last){
   printf("Saving vtu file\n");
   char filename[100];
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));

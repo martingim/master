@@ -1,3 +1,8 @@
+introduction
+    initialised stokes wave with periodic boundaries
+        multilayer and NS
+            check stability and the evolution of the simulation
+
 2d 
     compare multilayer vs NS vs NS_stephane_trick
         compare with probe at 1.5m and 10m

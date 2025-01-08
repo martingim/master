@@ -1,3 +1,22 @@
+2d 
+    compare multilayer vs NS vs NS_stephane_trick
+        compare with probe at 1.5m and 10m
+        compare vertical velocity profile with theory and PIV
+    run a 2d focusing wave
+
+3d 
+    One large piston to compare with 2d results
+        check if the waves have the same breaking point as in 2d
+        
+    pistons offset from each other
+    
+    make 3d focusing wave
+        Check how steep it can get without breaking
+            if we can get close to 3 times steeper than 2d
+
+
+
+
 multlayer solver with boundary conditions from piston file
 multilayer large wavetank
 multilayer large wavetank multiple paddles
@@ -13,3 +32,9 @@ change dimensions to 7x7
 * change the piston to use only one field
 
 *compare boundary piston to stephane trick for normal and higher amplitude
+
+*check if ditching adapt and only setting initial refinement is faster/better
+
+
+*check the different piston implementations for simulation speed (both stephane and boundary)
+    one piston field changed when setting every piston speed and position

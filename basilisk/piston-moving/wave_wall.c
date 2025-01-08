@@ -6,7 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "utils.h"
-#include "adapt_wavelet_leave_interface_two_levels.h"
+//#include "adapt_wavelet_leave_interface_two_levels.h"
+#include "adapt_wavelet_leave_interface.h"
 #include "heights.h"
 #include "output.h"
 #include "navier-stokes/centered.h"
@@ -18,18 +19,18 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 1; //0 to use all available threads for OPENMP
-int LEVEL = 6;
-int max_LEVEL = 10; //Default level if none is given as command line argument
+int set_n_threads = 7; //0 to use all available threads for OPENMP
+int LEVEL = 4;
+int max_LEVEL = 11; //Default level if none is given as command line argument
 int padding = 2;
 int EXTRA_PISTON_LEVEL = 0; //extra refinement around the piston to make it leak less 
 
 #define _h 0.6//water depth
 double l = 7; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
-double femax = 0.01;
-double uemax = 0.01;
-double pemax = .01;
+double femax = 0.2;
+double uemax = 0.2;
+double pemax = 0.2;
 double Tend = 10.;
 
 double probe_positions[144];
@@ -187,7 +188,8 @@ event init (i = 0) {
   //mvtu(42);
   fraction (f, - y); //set the water depth _h
   fraction (pstn, PISTON); //set the piston fraction
-  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL}).nf){  //for adapting more around the piston interface
+  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL, LEVEL,padding).nf){
+  //while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL}).nf){  //for adapting more around the piston interface
     fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
   }
@@ -202,14 +204,15 @@ event init (i = 0) {
 The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
  */
-  // event adapt (i++){
-  //   adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
-  //   unrefine ((x>(piston_position+0.05))&&(level>=max_LEVEL));
-  //   unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
-  //   unrefine ((y<-0.4)&&(x>(piston_position+0.02))); //unrefine the bottom
-  //   unrefine ((y>0.1));
-  //   fraction(pstn, PISTON);
-  // }
+event adapt (i++){
+  adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL, LEVEL,padding);
+  //adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
+  unrefine ((x>(piston_position+0.05))&&(level>=max_LEVEL));
+  unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
+  unrefine ((y<-0.4)&&(x>(piston_position+0.02))); //unrefine the bottom
+  unrefine ((y>0.1));
+  fraction(pstn, PISTON);
+}
 
 
 /**
@@ -247,7 +250,7 @@ event surface_probes(t+=0.01){
   fprintf(fp, "%f", t);
   heights(f, h);
   double min_height; //vertical distance from the center of the cell to the air water interface
-  double surface_elevation;
+  double surface_elevation=0;
   for (int probe_n=0;probe_n<n_probes;probe_n++){
     min_height=1;
     foreach(serial){

@@ -22,7 +22,7 @@ the parameters for the wave are from
 double Tend = 20;    //the end time of the simulation
 double Lx = 7; //The length of the simulation domain
 double g = 9.81;
-int LEVEL = 9;      //the grid resolution in x direction Nx = 2**LEVEL
+int LEVEL = 8;      //the grid resolution in x direction Nx = 2**LEVEL
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
                     //a regular distribution. the rest fo the layers follow a geometric distribution.
 double h_ = 0.6;                   
@@ -57,8 +57,8 @@ event piston_update(i++){
   else{
   U_X = piston_amplitude*(_4/cosh(_2*t-0.2)/cosh(_2*t-0.2)*tanh(_2*t-0.2)*sin(2*pi*piston_f*t-0.34) + 2*piston_f*pi*cos(2*pi*piston_f*t-0.34)*tanh(_2*t-0.2)*tanh(_2*t-0.2));
   }
-  u.n[left] = dirichlet(U_X*(pstn1[]+pstn2[]+pstn3[]+pstn4[]-pstn5[] - pstn6[] +pstn7[] - pstn8[] + pstn9[] + 1.5*pstn10[]+ 2*pstn11[]+2.5*pstn12[]+pstn13[]+pstn14[])); 
-  //u.n[left] = dirichlet(U_X);
+  //u.n[left] = dirichlet(U_X*(pstn1[]+pstn2[]+pstn3[]+pstn4[]-pstn5[] - pstn6[] +pstn7[] - pstn8[] + pstn9[] + 1.5*pstn10[]+ 2*pstn11[]+2.5*pstn12[]+pstn13[]+pstn14[])); 
+  u.n[left] = dirichlet(U_X);
 }
 
 event init (i = 0)

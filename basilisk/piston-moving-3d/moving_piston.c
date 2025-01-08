@@ -58,13 +58,12 @@ double piston_height = 0.2;   //height of the piston above the still water level
 double piston_bottom_clearance = 0.00; //piston distance above bottom
 double piston_position[n_pistons];
 double piston_position_p[n_pistons];
-int piston_number=0;
 #define piston_depth .2 //depth of the piston
 #define piston_width 0.5
 //#define PISTON (piston_width/2.-fabs(z-(piston_number+0.5)*piston_width)) -(piston_position[piston_number]<x) - (x<(piston_position[piston_number]-piston_depth))-(y>piston_height) //subtract conditions outside the piston
 #define PISTON intersection(intersection(piston_width/2.-fabs(z-(piston_number+0.5)*piston_width), piston_position[piston_number]-x), x-(piston_position[piston_number]-piston_depth))
-scalar pstn1[],pstn2[],pstn3[],pstn4[],pstn5[],pstn6[],pstn7[],pstn8[],pstn9[],pstn10[],pstn11[],pstn12[],pstn13[],pstn14[];
-scalar * pistons = {pstn1,pstn2,pstn3,pstn4,pstn5,pstn6,pstn7,pstn8,pstn9,pstn10,pstn11,pstn12,pstn13,pstn14};
+scalar pstn[],pistons[];
+
 
 void read_piston_data(){
   //This only take one piston position file as is
@@ -135,9 +134,10 @@ int main(int argc, char *argv[]) {
             run_number = atoi(argv[j + 1]);    // The next value in the array is your value
         }  
   }
-  for (scalar pstn in pistons){
-    pstn.refine = pstn.prolongation = fraction_refine;
-  }
+  
+  pstn.refine = pstn.prolongation = fraction_refine;
+  pistons.refine = pistons.prolongation = fraction_refine;
+  
   //make folders for saving the results
   sprintf(results_folder, "results/run%d/LEVEL%d_%d", run_number, max_LEVEL, EXTRA_PISTON_LEVEL);
   sprintf(vtu_folder, "%s/vtu", results_folder);
@@ -196,22 +196,26 @@ event init (i = 0) {
   //refine((fabs(y)<l/N*0.49)&&(level<=max_LEVEL));
   //mvtu(42);
   fraction (f, - y); //set the water depth _h
-  piston_number =0;
-  for (scalar pstn in pistons){
+  
+  for (int piston_number=0;piston_number<n_pistons;piston_number++){
     fraction (pstn, PISTON); //set the piston fraction
-    piston_number += 1;
-  }
-  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn1},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL}).nf){  //for adapting more around the piston interface
-    fraction (f, - y); //set the water level on the refined mesh
-    piston_number =0;
-    for (scalar pstn in pistons){
-      fraction (pstn, PISTON); //set the piston fraction
-      piston_number += 1;
+    foreach(){
+      pistons[]+=pstn[];
     }
+    
   }
-  for (scalar pstn in pistons){
-    fraction (pstn, PISTON); //set the piston fraction
-    piston_number += 1;
+  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pistons},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL}).nf){  //for adapting more around the piston interface
+    fraction (f, - y); //set the water level on the refined mesh
+    
+    foreach(){
+      pistons[]= 0;
+    }
+    for (int piston_number=0;piston_number<n_pistons;piston_number++){
+      fraction (pstn, PISTON); //set the piston fraction
+      foreach(){
+        pistons[]+=pstn[];
+      }
+    }
   }
   //unrefine ((x < -0.1)&&(level>6));
   foreach(){
@@ -225,15 +229,21 @@ The grid is adapted to keep max refinement at the air water interface.
 And to minimise the error in the velocity field.
  */
 event adapt (i++){
-  adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn1},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
+  adapt_wavelet_leave_interface({u.x, u.y, p},{f, pistons},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
   //unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
   //unrefine ((y<-0.4)&&(x>(piston_position+0.02))); //unrefine the bottom
   //unrefine ((y>0.1));
-  piston_number =0;
-  for (scalar pstn in pistons){
-    fraction (pstn, PISTON); //set the piston fraction
-    piston_number += 1;
-  }
+  
+  // //set piston fraction after refining mesh
+  // foreach(){
+  //   pistons[]= 0;
+  // }
+  // for (int piston_number=0;piston_number<n_pistons;piston_number++){
+  //   fraction (pstn, PISTON); //set the piston fraction
+  //   foreach(){
+  //     pistons[]+=pstn[];
+  //   }
+  // }
 
 }
 
@@ -248,14 +258,13 @@ event piston (i++, first) {
   piston_counter = floor(t*file_samplerate);
   double counter_remainder = 0;
   counter_remainder = t*file_samplerate-piston_counter;
-  piston_number =0;
-  for (scalar pstn in pistons){
+  
+  for (int piston_number=0;piston_number<n_pistons;piston_number++){
+    fraction (pstn, PISTON); //set the piston fraction
     piston_position[piston_number] = piston_positions[piston_counter][piston_number] + (piston_positions[piston_counter+1][piston_number] -piston_positions[piston_counter][piston_number])*counter_remainder; //update the piston position
     //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
     U_X = (piston_position[piston_number]-piston_position_p[piston_number])/dt;
     piston_position_p[piston_number] = piston_position[piston_number];
-    fraction (pstn, PISTON); //set the piston fraction
-    piston_number += 1;
     foreach(){
       u.y[] = u.y[]*(1 - pstn[]);
       u.x[] = pstn[]*U_X + u.x[]*(1 - pstn[]);
@@ -303,7 +312,7 @@ event vtu(t+=.1, last){
   printf("Saving vtu file\n");
   char filename[100];
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
-  output_vtu((scalar *) {f,p,pstn1,pstn2,pstn3,pstn4,pstn5}, (vector *) {u}, filename);
+  output_vtu((scalar *) {f,p,pistons}, (vector *) {u}, filename);
   fprintf(stderr, "openmp threads:%d\n", omp_get_max_threads());
 }
 

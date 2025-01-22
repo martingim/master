@@ -19,24 +19,24 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 7; //0 to use all available threads for OPENMP
+int set_n_threads = 2; //0 to use all available threads for OPENMP
 int LEVEL = 4;
 int max_LEVEL = 11; //Default level if none is given as command line argument
 int padding = 2;
 int EXTRA_PISTON_LEVEL = 0; //extra refinement around the piston to make it leak less 
 
 #define _h 0.6//water depth
-double l = 7; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.2;
 double uemax = 0.2;
 double pemax = 0.2;
-double Tend = 10.;
+double Tend = 25.;
 
 double probe_positions[144];
 int n_probes = 144;
 int n_extra_probe = 4;
-double extra_probe_positions[]={8.00, 10.04, 10.75, 11.50};
+double extra_probe_positions[]={1.50, 10.04, 10.75, 11.50};
 
 vector h[]; //scalar field of the distance from the surface, using heights.h
 char results_folder[40]; //the location to save the results
@@ -45,12 +45,13 @@ char vtu_folder[50]; //the locaton to save the vtu files
 //piston file 
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
 char piston_file[40];
+char piston_speed_file[40];
 int file_samplerate = 100; //the samplerate of the piston position file
 #define piston_timesteps 10000//the number of timesteps in the piston file
 int piston_counter;
 double piston_positions[piston_timesteps];
-double piston_position = 0; //the starting position of the piston
-double piston_position_p; //piston position at the previous timestep
+double piston_ux[piston_timesteps];
+double piston_position = 0;
 double U_X = 0.; //the speed of the piston
 //piston parameters 
 #define piston_back_wall_offset .1 //the distance from the left of the domain to the front of the piston
@@ -72,17 +73,31 @@ void read_piston_data(){
   int _running=1;
   while(_running && count< piston_timesteps ){
     _running = fscanf(file, "%lf", &(piston_positions[count]));
-    //piston_positions[count] /=100.; //convert to meters
-    piston_positions[count] *=0.044; //convert to meters
     count++;
   }
   fclose(file);
-  double start_offset = piston_positions[0];
-  for (int i=0;i<count;i++){
-    piston_positions[i] -= start_offset;
+  
+  for (int i=count;i<piston_timesteps;i++){
+    piston_positions[i] = 0;
   }
-  piston_position_p = piston_positions[0];
-  piston_position = piston_positions[0];
+  count = 0;
+  file = fopen(piston_speed_file, "r");
+  if(!file)
+    {
+        perror("Error opening piston position file");
+    }
+  _running=1;
+  while(_running && count< piston_timesteps ){
+    _running = fscanf(file, "%lf", &(piston_ux[count]));
+    count++;
+  }
+  fclose(file);
+  
+  for (int i=count;i<piston_timesteps;i++){
+    piston_ux[i] = 0;
+  }
+  
+
 }
 
 event setup_probe_positions(i=0){
@@ -109,17 +124,17 @@ int main(int argc, char *argv[]) {
   
   //set max_LEVEL and run number from command line args
   for(int j=0;j<argc;j++){
-    if (strcmp(argv[j], "-L") == 0) // This is your parameter name
+    if (strcmp(argv[j], "-L") == 0)
         {                 
-            max_LEVEL = atoi(argv[j + 1]);    // The next value in the array is your value
+            max_LEVEL = atoi(argv[j + 1]);
         }
-    if (strcmp(argv[j], "-P") == 0) // This is your parameter name
+    if (strcmp(argv[j], "-P") == 0) 
         {                 
-            EXTRA_PISTON_LEVEL = atoi(argv[j + 1]);    // The next value in the array is your value
+            EXTRA_PISTON_LEVEL = atoi(argv[j + 1]);   
         }
-    if (strcmp(argv[j], "-r") == 0) // This is your parameter name
+    if (strcmp(argv[j], "-r") == 0) 
         {                 
-            run_number = atoi(argv[j + 1]);    // The next value in the array is your value
+            run_number = atoi(argv[j + 1]);
         }  
   }
 
@@ -142,15 +157,16 @@ int main(int argc, char *argv[]) {
   
   //copy the script to the results folder for later incpection if needed
   char copy_script[100];
-  sprintf(copy_script, "cp wave_wall.c %s/wave_wall.c", results_folder);
+  sprintf(copy_script, "cp moving_piston.c %s/moving_piston.c", results_folder);
   if (system(copy_script)==0){
     printf("copied script to results folder\n");
   }
 
   //piston data
   // sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
-  sprintf(piston_file, "piston_files/%d/padle_ut.dat", run_number);
-
+  sprintf(piston_file, "piston_files/%d/piston_position.dat", run_number);
+  sprintf(piston_speed_file, "piston_files/%d/piston_speed.dat", run_number);
+  
   printf("%s\n", piston_file);
   read_piston_data();
   
@@ -221,12 +237,9 @@ piston is leaky.
 */
 event piston (i++, first) {
   piston_counter = floor(t*100);
-  double counter_remainder = 0;
-  counter_remainder = t*100.-piston_counter;
-  piston_position = piston_positions[piston_counter] + (piston_positions[piston_counter+1] -piston_positions[piston_counter])*counter_remainder; //update the piston position
-  //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
-  U_X = (piston_position-piston_position_p)/dt;
-  piston_position_p = piston_position;
+  piston_position = piston_positions[piston_counter];
+  
+  U_X = piston_ux[piston_counter];
   fraction (pstn, PISTON);
   foreach() {
     u.y[] = u.y[]*(1 - pstn[]);

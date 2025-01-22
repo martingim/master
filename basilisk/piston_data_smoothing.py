@@ -3,11 +3,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 from scipy.optimize import leastsq
+from scipy import fft
 # smoothes the voltage data from the reading of the piston position
 # takes the derivative and converts to m/s
 # saves the result to piston_speed.dat in the same folder as fil1.dat
 # run with: find . -name "fil1.dat" | xargs python3 piston_data_smoothing.py
 # to run in all subdirs where fil1.dat is present
+function_fit = 0
+fft_lowpass = 1
+savgol_fit = 0
+fil3 = True # use fil3 instead of the volt reading from the piston
 window_length = 20
 polyorder = 4
 f = 1.425
@@ -22,16 +27,24 @@ if len(sys.argv)>1:
     filenames = sys.argv[1:]
 else:
     print("no filename supplied in command line")
-    filenames = ['2d_piston/boundary-piston/piston_files/3/fil1.dat']
+    filenames = ['2d_piston/boundary-piston/piston_files/1/fil1.dat']
+    if fil3:
+        filenames = ['2d_piston/boundary-piston/piston_files/1/fil3.dat']
 file_samplerate = 100
-volt_to_meters = -0.044
+if fil3:
+    convert_to_meters = 0.01
+else:
+    convert_to_meters = -0.044
 
 
 for filename in filenames:
     data = np.loadtxt(filename)
+    if len(data)%2:
+        data = data[:-1]
+
     if wave_time*file_samplerate>len(data):
         wave_time = int(len(data)/100)
-    position = (data-np.mean(data))*volt_to_meters
+    position = (data-np.mean(data))*convert_to_meters
     mean_guess = np.mean(position)
     print(f"loaded: {filename}")
     t = np.linspace(0,len(position)/file_samplerate, len(position))
@@ -57,6 +70,7 @@ for filename in filenames:
     rampdown_tanh = res[0][1]
     
     if verbose:
+        print('Function fit parameters')
         print('amplitude', amp)
         print('sin phase offset', phase_offset)
         print('tanh_factor', tanh_factor)
@@ -66,36 +80,45 @@ for filename in filenames:
     
     fitted_position = amp*np.sin(f*(t+phase_offset)*2*np.pi)*np.tanh((t+tanh_offset)*tanh_factor).clip(min=0)*np.tanh((rampdown_time-t)*rampdown_tanh).clip(min=0)+offset
 
+    ## SAVGOL filter
     smoothed_derivative = savgol_filter(data, window_length, polyorder, deriv=1, delta=1)
-    piston_speed = -smoothed_derivative*volt_to_meters*file_samplerate
+    piston_speed = -smoothed_derivative*convert_to_meters*file_samplerate
 
     smoothed_voltage = savgol_filter(data, window_length, polyorder, delta=1)
-    piston_position = -smoothed_voltage*volt_to_meters
+    piston_position = smoothed_voltage*convert_to_meters
 
-    smoothed_voltage = savgol_filter(data, window_length, polyorder, delta=1)
-    piston_position = -smoothed_voltage*volt_to_meters
 
+    ##fft
+    real_fft = np.fft.rfft(position)
+    real_fft[500:] = 0
+    fft_smoothed = np.fft.irfft(real_fft)
+
+    print(f"saving results in: {filename[:-8]}")    
 
     speed_file = filename[:-8]+'piston_speed.dat'
     position_file = filename[:-8]+'piston_position.dat'
 
-    print(f"saving results in: {filename[:-8]}")
-    # smoothed
-    # np.savetxt(speed_file, piston_speed, fmt='%.8f')
-    # np.savetxt(position_file, piston_position, fmt='%.8f')
-    
-    #function fit
-    np.savetxt(speed_file, np.gradient(fitted_position)*file_samplerate, fmt='%.8f')
-    np.savetxt(position_file, fitted_position, fmt='%.8f')
+    # save results to file
+    if function_fit:
+        np.savetxt(speed_file, np.gradient(fitted_position)*file_samplerate, fmt='%.8f')
+        np.savetxt(position_file, fitted_position, fmt='%.8f')
+    elif fft_lowpass:
+        np.savetxt(speed_file, np.gradient(fft_smoothed)*file_samplerate, fmt='%.8f')
+        np.savetxt(position_file, fft_smoothed, fmt='%.8f')
+    elif savgol_fit:
+        np.savetxt(speed_file, np.gradient(fitted_position)*file_samplerate, fmt='%.8f')
+        np.savetxt(position_file, fitted_position, fmt='%.8f')
 
     plt.figure()
     plt.plot(t, position)
     plt.plot(t, fitted_position)
-    plt.legend(['data', 'func fit'])
-    plt.title(filename[-11:-9])
+    plt.plot(t, piston_position-piston_position.mean())
+    plt.plot(t, fft_smoothed)
+    plt.legend(['data', 'func fit', 'savgol smoothing', 'fft_smoothing'])
+    plt.title(filename[-10:-9])
     # plt.plot(t[-100:], position[-100:])
     # plt.show()
     #plt.plot(t, savgol_data*np.tanh(t*100))
     #plt.plot(t, np.gradient(data))
     #plt.show()
-plt.show()
+#plt.show()

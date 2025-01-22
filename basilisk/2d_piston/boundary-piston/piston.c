@@ -24,24 +24,23 @@ int max_LEVEL = 10; //Default level if none is given as command line argument
 int padding = 2;
 
 #define _h 0.6//water depth
-double l = 7; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.01;
 double uemax = 0.01;
 double pemax = .01;
-double Tend = 10.;
+double Tend = 25.;
 
 double probe_positions[144];
 int n_probes = 144;
 int n_extra_probe = 4;
-double extra_probe_positions[]={8.00, 10.04, 10.75, 11.50};
+double extra_probe_positions[]={1.50, 10.04, 10.75, 11.50};
 
 vector h[]; //scalar field of the distance from the surface, using heights.h
 char results_folder[40]; //the location to save the results
 char vtu_folder[50]; //the locaton to save the vtu files
 
 //piston file 
-#define padle_ut 1
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
 int file_samplerate = 100; //the samplerate of the piston position file
 #define piston_timesteps 10000//the number of timesteps in the piston file
@@ -52,16 +51,11 @@ double U_X = 0.; //the speed of the piston
 
 void read_piston_data(){
   char piston_file[40];
-  #if padle_ut
-  sprintf(piston_file, "piston_files/%d/padle_ut.dat", run_number);
-  #else
-  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
-  #endif
 
+  sprintf(piston_file, "piston_files/%d/piston_speed.dat", run_number);
   printf("piston file:%s\n", piston_file);
 
   int count = 0;
-  double piston_positions[piston_timesteps];
   FILE *file;
   file = fopen(piston_file, "r");
   if(!file)
@@ -70,17 +64,12 @@ void read_piston_data(){
     }
   int _running=1;
   while(_running && count< piston_timesteps ){
-    _running = fscanf(file, "%lf", &(piston_positions[count]));    
-    #if padle_ut
-    piston_positions[count] *=0.044; //convert to meters
-    #else
-    piston_positions[count] /=100.; //convert to meters
-    #endif
+    _running = fscanf(file, "%lf", &(piston_ux[count]));    
     count++;
   }
   fclose(file);
-  for (int i=0;i<count-1;i++){
-    piston_ux[i] = (piston_positions[i+1]-piston_positions[i])*file_samplerate;//calculate the piston velocity
+  for (int i=count;i<piston_timesteps;i++){
+    piston_ux[i] = 0;
   }
 }
 
@@ -178,8 +167,7 @@ event init (i = 0) {
   fraction (f, - y); //set the water depth _h
   while (adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax,uemax,pemax, femax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
     fraction (f, - y); //set the water level on the refined mesh
-  }
-  unrefine ((x < -0.1)&&(level>6));
+  } 
   foreach(){
     pf[] = 0;
     p[] = pf[];
@@ -212,13 +200,13 @@ event surface_probes(t+=0.01){
   sprintf(filename, "%s/surface_probes.csv", results_folder);
   FILE *fp = fopen(filename, "a");
     if (i==0){
-      fprintf(fp, "time, U_X");
+      fprintf(fp, "time");
       for (int j = 0;j<n_probes;j++){
         fprintf(fp, ", %f", probe_positions[j]);    
       }
       fprintf(fp, "\n");
   }
-  fprintf(fp, "%f, %f", t, U_X);
+  fprintf(fp, "%f", t);
   heights(f, h);
   double min_height; //vertical distance from the center of the cell to the air water interface
   double surface_elevation=0;

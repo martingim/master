@@ -18,11 +18,12 @@ the parameters for the wave are from
 
 //#include "display.h"
 
-int set_n_threads = 4; //set number of threads manually
+int set_n_threads = 2; //set number of threads manually
 int LEVEL = 9;      //the grid resolution in x direction Nx = 2**LEVEL
 
-double Tend = 10;    //the end time of the simulation
-double Lx = 24.6; //The length of the simulation domain
+double Tend = 8;    //the end time of the simulation
+// double Lx = 24.6; //The length of the simulation domain
+double Lx = 24.6/4;
 #define nl_ 10  //the default number of layers if none are given as command line arguments
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
                     //a regular distribution. the rest fo the layers follow a geometric distribution.
@@ -30,10 +31,9 @@ double rmin = 0.5;  //rmin the relative height of the top layer compared to
 double h_ = 0.6;    //water depth
 
 // piston file
-#define padle_ut 1
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
-int file_samplerate = 100; //the samplerate of the piston position file
-#define piston_timesteps 10000//the number of timesteps in the piston file
+int file_samplerate = 100; //the samplerate of the piston speed file
+#define piston_timesteps 10000//the max number of timesteps in the piston file
 int piston_counter;
 double piston_ux[piston_timesteps];
 double U_X = 0.; //the speed of the piston
@@ -48,16 +48,10 @@ int n_probes = 144;
 
 void read_piston_data(){
   char piston_file[40];
-  #if padle_ut
-  sprintf(piston_file, "piston_files/%d/padle_ut.dat", run_number);
-  #else
-  sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
-  #endif
-
+  sprintf(piston_file, "piston_files/%d/piston_speed.dat", run_number);
   printf("piston file:%s\n", piston_file);
 
   int count = 0;
-  double piston_positions[piston_timesteps];
   FILE *file;
   file = fopen(piston_file, "r");
   if(!file)
@@ -66,17 +60,12 @@ void read_piston_data(){
     }
   int _running=1;
   while(_running && count< piston_timesteps ){
-    _running = fscanf(file, "%lf", &(piston_positions[count]));    
-    #if padle_ut
-    piston_positions[count] *=0.044; //convert to meters
-    #else
-    piston_positions[count] /=100.; //convert to meters
-    #endif
+    _running = fscanf(file, "%lf", &(piston_ux[count]));    
     count++;
   }
   fclose(file);
-  for (int i=0;i<count-1;i++){
-    piston_ux[i] = (piston_positions[i+1]-piston_positions[i])*file_samplerate;//calculate the piston velocity
+  for (int i=count;i<piston_timesteps;i++){
+    piston_ux[i] = 0; //set the remaining timesteps to 0
   }
 }
 
@@ -92,9 +81,6 @@ event setup_probe_positions(i=0){
 double asdf = 1.;
 event piston_update(i++){
   piston_counter = floor(t*file_samplerate);
-  //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
-  //U_X = piston_ux[piston_counter];
-
   u.n[left] = dirichlet(piston_ux[piston_counter]*asdf);
 }
 
@@ -183,7 +169,7 @@ int main(int argc, char *argv[])
   #endif
   read_piston_data();
   run();
-
+  }
 #if _OPENMP
 event output_field (t <= Tend; t += 1)
 {

@@ -8,7 +8,7 @@ lab_surface_probes = ["f1425_a0_308.csv";
             "f1425_a0_154_r1.csv"];
 
 
-% %%
+%%
 lab_folder = "Lab_results/24_09_18/";
 lab_surface_probes = ["f1425_a308_r1.csv";
             "f1425_a308_r2.csv";
@@ -74,6 +74,30 @@ for run_number=1:size(lab_surface_probes, 1)
     
     plot(t(1:size(padle_ut, 1)), (padle_ut-padle_ut(1)))
     xlim([0, 10])
-    legend('fil1', 'fil2', 'fil3', 'padle ut')
+
+    plot(t, 0.308*tanh(t).*sin(2*pi*1.425*t))
+    legend('fil1', 'fil2', 'fil3', 'padle ut', 'tanh*sin')
 
 end
+
+%%
+close all;
+for run_number=1:size(lab_surface_probes, 1)
+    run_folder = sprintf("%s%d/" , lab_folder, run_number);
+    figure;
+    hold on
+    title(sprintf("run number %d", run_number));
+    
+    load(append(run_folder, "padle_ut.dat"));
+    t = 0.008:0.01:size(padle_ut, 1)/100;
+    plot(t(1:size(padle_ut, 1)), (padle_ut-padle_ut(1)))
+    plot(t(1:end-1)+0.025, diff(padle_ut)*4.4/0.01);
+
+    load(append(run_folder, "fil3.dat"));
+    plot(t(1:end-1), diff(fil3)/0.01);
+    xlim([0, 10])
+    plot(t(1:end-1), diff(0.308*tanh(t).*sin(2*pi*1.425*t))*4.4/0.01);
+    legend('padle_ut', 'diff(padle_ut)', 'diff(fil3)', 'tanh*sin')
+
+end
+

@@ -19,7 +19,7 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 2; //0 to use all available threads for OPENMP
+int set_n_threads = 6; //0 to use all available threads for OPENMP
 int LEVEL = 4;
 int max_LEVEL = 11; //Default level if none is given as command line argument
 int padding = 2;

@@ -14,6 +14,16 @@ titles = [];
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14_refineparam0001/"];  titles = [titles "run 5 LEVEL 14 refineparam 0.001"];
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL13_refineparam0001/"];  titles = [titles "run 5 LEVEL 13 refineparam 0.001"];
 % basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL12/"];  titles = [titles "run 5 LEVEL 12"];
+%% results for the wave from run number 5 test LEVEL
+%half amplitude piston movement
+lab_run_number = 5;
+basilisk_folders = [];
+titles = [];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL12/"]; titles = [titles "LEVEL 12"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL13/"]; titles = [titles "LEVEL 13"];
+basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL14/"]; titles = [titles "LEVEL 14"];
+%basilisk_folders = [basilisk_folders "~/Documents/results/run5/LEVEL15/"]; titles = [titles "LEVEL 15"];
+
 %% run 1
 %test levels
 basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL12/"];  titles = [titles "run 1 LEVEL 12"];
@@ -22,11 +32,14 @@ basilisk_folders = [basilisk_folders "~/Documents/results/run1/LEVEL14/"];  titl
 
 %% run 4
 %test levels
-basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL12/"];  titles = [titles "run 4 LEVEL 12"];
+basilisk_folders = [];
+titles = [];
+%basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL12/"];  titles = [titles "run 4 LEVEL 12"];
 basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL13/"];  titles = [titles "run 4 LEVEL 13"];
-basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL14/"];  titles = [titles "run 4 LEVEL 14"];
+% basilisk_folders = [basilisk_folders "~/Documents/results/run4/LEVEL14/"];  titles = [titles "run 4 LEVEL 14"];
 
 %%
+
 
 timestep = 25;
 omega = 8.95;
@@ -69,15 +82,14 @@ for i=1:size(basilisk_folders, 2)
     LMax = islocalmax(surface_probes(:,2), 'MinSeparation', min_separation);
     LMin = islocalmin(surface_probes(:,2), 'MinSeparation', min_separation);
     a = (mean(surface_probes(LMax,2))-mean(surface_probes(LMin,2)))/2;
-
-    % plot energy
+    % plot energy 
     %plot 5th order stokes alpha
     if i==1
         [k, ~,~,~] = Stokes5th_alpha(a, omega,h,true);
         k*a
     else
         [k, ~,~,~] = Stokes5th_alpha(a, omega,h,false);
-        k*a
+        k*a;
     end
     % plot the energy from the basilisk results
     x_start = 7.5; %where to plot the mean kinetic energy from and to
@@ -104,7 +116,7 @@ for i=1:size(basilisk_folders, 2)
     crest_y = crest_y(mask(:,crest_idx));
     plot(mean_alpha, crest_y/h, 'DisplayName',titles(i))
     legend()
-    title("mean energy")
+    title("horizontal mean of velocity")
     xlabel('$\alpha=\frac{\omega}{agk}(u^2+v^2)^{\frac{1}{2}}$', 'interpreter', 'latex', 'FontSize', 20)
     ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 20, 'rotation', 0)
 end

@@ -100,11 +100,15 @@ basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boun
 lab_run_number = 3;
 basilisk_folders = [];
 titles = [];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run1/LEVEL10/"]; titles = [titles "run 1 LEVEL 10"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run2/LEVEL10/"]; titles = [titles "run 2 LEVEL 10"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run3/LEVEL10/"]; titles = [titles "run 3 LEVEL 10"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run3/LEVEL11/"]; titles = [titles "run 3 LEVEL 11"];
+% basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run1/LEVEL10/"]; titles = [titles "run 1 LEVEL 10"];
+% basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run2/LEVEL10/"]; titles = [titles "run 2 LEVEL 10"];
+%basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run3/LEVEL10/"]; titles = [titles "run 3 LEVEL 10"];
+%basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run3/LEVEL11/"]; titles = [titles "run 3 LEVEL 11"];
 basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run3/LEVEL12/"]; titles = [titles "run 3 LEVEL 12"];
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/piston-moving/results/run3/LEVEL12_0/"]; titles = [titles "moving piston run 3 LEVEL 12"];
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/piston-moving/results/run3/LEVEL12_2/"]; titles = [titles "moving piston run 3 LEVEL 12 + 2"];
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/piston-moving/results/run3/LEVEL13_1/"]; titles = [titles "moving piston run 3 LEVEL 13 + 1"];
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/piston-moving/results/run3/LEVEL11_3/"]; titles = [titles "moving piston run 3 LEVEL 11 + 3"];
 
 %% run number 3, 2d boundary piston
 lab_run_number = 4;
@@ -175,7 +179,7 @@ for lab_run_number=lab_run_number
 
     %plot the lab results
     col = sensor+2;
-    plot(t, -(file(:,col)-file(1,col)), 'x', 'DisplayName',sprintf('run %d surface probe', lab_run_number))
+    plot(t, -(file(:,col)-file(1,col)), '.', 'DisplayName',sprintf('run %d surface probe', lab_run_number))
 end
 
 for i=1:size(basilisk_folders, 2)
@@ -284,7 +288,7 @@ for lab_run_number = 3
     plot(fil1*0.044, 'DisplayName',sprintf("fil1 run number:%d",lab_run_number))
     
     fil2 = fil2 - fil2(1);
-    plot(fil2*0.01,'-', 'DisplayName',sprintf("fil2 run number:%d",lab_run_number))
+    % plot(fil2*0.01,'-', 'DisplayName',sprintf("fil2 run number:%d",lab_run_number))
 
     fil3 = (fil3-fil3(1));
     plot(fil3*0.01,'-', 'DisplayName',sprintf("fil3 run number:%d",lab_run_number))

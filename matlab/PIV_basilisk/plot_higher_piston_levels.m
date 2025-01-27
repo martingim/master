@@ -17,11 +17,11 @@ titles = [];
 % basilisk_folders = [basilisk_folders "~/Documents/results/test_two_levels/LEVEL13_1/"]; titles = [titles "LEVEL 13 Piston + 1, 3:46:40"];
 basilisk_folders = [basilisk_folders "~/Documents/results/test_two_levels/LEVEL14/"]; titles = [titles "NS LEVEL 14 Piston set water velocity"];
 % basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/boundary-piston/results/run1/LEVEL10/"]; titles = [titles "NS LEVEL 10 set boundary"];
-%basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/boundary-piston/results/run1/LEVEL11/"]; titles = [titles "NS LEVEL 11 set boundary"];
-%basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/boundary-piston/results/run1/LEVEL12_3/"]; titles = [titles "LEVEL 12 set boundary"]; 
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/boundary-piston/results/run1/LEVEL11/"]; titles = [titles "NS LEVEL 11 set boundary"];
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/boundary-piston/results/run1/LEVEL12/"]; titles = [titles "LEVEL 12 set boundary"]; 
 basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/multilayer-piston/results/run1/LEVEL10_layers10/"]; titles = [titles "multilayer LEVEL 10 set boundary"];
 basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/multilayer-piston/results/run1/LEVEL11_layers20/"]; titles = [titles "multilayer LEVEL 11 set boundary"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/multilayer-piston/results/run1/LEVEL12_layers40/"]; titles = [titles "multilayer LEVEL 12 set boundary"];
+% basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/multilayer-piston/results/run1/LEVEL12_layers40/"]; titles = [titles "multilayer LEVEL 12 set boundary"];
 
 
 file = load(append(lab_folder, lab_surface_probes(lab_run_number)));
@@ -70,6 +70,7 @@ plot(t, fil-fil(1,1))
 
 f = 1.425;
 xpos=0.042*0.308*max(0,tanh(2*t-0.2).^2).*sin(2*pi*f*t-0.34)*100;
+
 
 %u = 0.04*0.308*(sech(t).^2.*sin(2*f*pi*t) + 2*f*pi*cos(2*f*pi*t).*tanh(t));
 plot(t, xpos);

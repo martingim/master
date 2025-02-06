@@ -334,7 +334,7 @@ event stop (t = Tend);
 
 event show_progress(i++)
 {
-  printf("t=%02.3f, i=%04d, dt=%.3g\n", t, i, dt);
+  printf("t=%02.3f, i=%04d, dt=%.3g, run:%d, LEVEL=%d, Extra_piston_level=%d\n", t, i, dt,run_number, max_LEVEL, EXTRA_PISTON_LEVEL);
   //float progress = 0;
   //progress = t /Tend;
   //printf("%.2f%%\r", progress*100);

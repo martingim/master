@@ -21,9 +21,9 @@ the parameters for the wave are from
 int set_n_threads = 2; //set number of threads manually
 int LEVEL = 9;      //the grid resolution in x direction Nx = 2**LEVEL
 
-double Tend = 8;    //the end time of the simulation
+double Tend = 25;    //the end time of the simulation
 // double Lx = 24.6; //The length of the simulation domain
-double Lx = 24.6/4;
+double Lx = 14;
 #define nl_ 10  //the default number of layers if none are given as command line arguments
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
                     //a regular distribution. the rest fo the layers follow a geometric distribution.
@@ -42,7 +42,7 @@ double U_X = 0.; //the speed of the piston
 char results_folder[40]; //the location to save the results
 char vts_folder[50]; //the locaton to save the vtu files
 //surface probes
-double probe_positions[144] = {8.0,10.048,10.745,11.498};
+double probe_positions[144] = {1.5,10.048,10.745,11.498};
 int n_probes = 144;
 
 
@@ -121,6 +121,10 @@ int main(int argc, char *argv[])
     if (strcmp(argv[j], "-nl") == 0)
     {                
       nl = atoi(argv[j + 1]); 
+    }
+    if (strcmp(argv[j], "-r") == 0)
+    {                
+      run_number = atoi(argv[j + 1]); 
     }
   }
   //make folders for saving the results
@@ -245,7 +249,7 @@ event show_progress(i++)
 {
   float progress = 0;
   progress = t /Tend;
-  printf("t=%.3f, i=%d, dt=%g, ", t, i, dt);
+  printf("t=%.3f, i=%d, dt=%g, run=%d, LEVEL=%d, nl=%d, ", t, i, dt, run_number, LEVEL, nl);
   printf("%.2f%%\n", progress*100);
 }
 
@@ -254,13 +258,13 @@ event surface_probes(t+=0.01){
   sprintf(filename, "%s/surface_probes.csv", results_folder);
   FILE *fp = fopen(filename, "a");
     if (i==0){
-      fprintf(fp, "time, U_X");
+      fprintf(fp, "time");
       for (int j = 0;j<n_probes;j++){
         fprintf(fp, ", %f", probe_positions[j]);    
       }
       fprintf(fp, "\n");
   }
-  fprintf(fp, "%f, %f", t, U_X);
+  fprintf(fp, "%f", t);
   for (int probe_n=0;probe_n<n_probes;probe_n++){
     
     fprintf(fp, ", %f", interpolate(eta, probe_positions[probe_n],-h_));

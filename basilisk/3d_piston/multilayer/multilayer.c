@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
   breaking = 0.1;
   CFL_H = .5;
   TOLERANCE = 10e-5;
-  DT = 0.01;
+  //DT = 0.01;
   //theta_H = 0.51;
   #if _OPENMP
   if (set_n_threads>0)
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 }
 
 #if _OPENMP
-event output_field (t <= Tend; t += 1)
+event output_field (t <= Tend; t += .1)
 {
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
     static int j;

@@ -165,11 +165,7 @@ int main(int argc, char *argv[]) {
   G.y = - 9.81;
   N = 1 << LEVEL;
   DT = 0.01;
-  u.n[bottom] = dirichlet(0.);
-  u.t[bottom] = dirichlet(0.);
   
-  
-  u.n[right] = neumann(0.);
   
 #if _OPENMP
   int num_omp = omp_get_max_threads();
@@ -187,6 +183,9 @@ event init (i = 0) {
   mask_domain();
   u.n[left] = dirichlet(Wave_VeloX(0,0,0,t)*paddle_rampoff(y));
   p[left] = neumann(neumann_pressure_variable(0));
+  u.n[bottom] = dirichlet(0.);
+  u.t[bottom] = dirichlet(0.);
+  u.n[right] = neumann(0.);
   //refine((fabs(y)<l/N*0.49)&&(level<=max_LEVEL));
   //mvtu(42);
   fraction (f, - y); //set the water depth _h

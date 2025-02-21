@@ -35,7 +35,8 @@ double probe_positions[144];
 int n_probes = 144;
 int n_extra_probe = 4;
 double extra_probe_positions[]={1.50, 10.04, 10.75, 11.50};
-
+double ramp_start = 0.1;
+double ramp_distance = 0.1;
 vector h[]; //scalar field of the distance from the surface, using heights.h
 char results_folder[40]; //the location to save the results
 char vtu_folder[50]; //the locaton to save the vtu files
@@ -44,10 +45,11 @@ char vtu_folder[50]; //the locaton to save the vtu files
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
 int file_samplerate = 100; //the samplerate of the piston position file
 #define piston_timesteps 10000//the number of timesteps in the piston file
-int piston_counter;
 double piston_ux[piston_timesteps];
 double U_X = 0.; //the speed of the piston
+//scalar myramp[];
 //piston parameters 
+# define neumann_pressure_variable(i) ((paddle_rampoff(y)*(Wave_VeloX(0,0,0,t+dt)-Wave_VeloX(0,0,0,t))/dt - a.n[i])*fm.n[i]/alpha.n[i])
 
 void read_piston_data(){
   char piston_file[40];
@@ -73,6 +75,24 @@ void read_piston_data(){
   }
 }
 
+double paddle_rampoff(double y){ //set the rampoff distance and start higher up in the code
+  double ramp = 1;
+  if (y<ramp_start){
+    ramp = 1;
+  }
+  if (y>ramp_start){
+    ramp = (ramp_start+ramp_distance-y)/ramp_distance;
+    if (y>ramp_start+ramp_distance){
+      ramp = 0;
+    }
+  }
+  return ramp;
+}
+
+double Wave_VeloX(double x, double y, double z, double t){
+  return piston_ux[(int)floor(t*file_samplerate)];
+}
+
 event setup_probe_positions(i=0){
   int j = 0;
   for(j=0;j<n_extra_probe;j++){
@@ -90,7 +110,7 @@ void mask_domain(){
   mask(y > domain_height - _h ? top : none);
   u.n[top]  = neumann(0.);
   p[top]    = dirichlet(0.);
-  pf[top]   = dirichlet(0.);
+  u.t[top]   = dirichlet(0.);
 }
 
 int main(int argc, char *argv[]) {
@@ -116,7 +136,10 @@ int main(int argc, char *argv[]) {
   if (system(remove_old_results)==0){
     printf("removed old results in:%s\n", results_folder);
   }
-
+  // myramp.refine = myramp.prolongation = fraction_refine;
+  // foreach(){
+  //   myramp[] = paddle_rampoff(y);
+  // }
   char make_results_folder[100];
   sprintf(make_results_folder, "mkdir -p %s", vtu_folder);
   if (system(make_results_folder)==0){
@@ -126,7 +149,7 @@ int main(int argc, char *argv[]) {
   
   //copy the script to the results folder for later incpection if needed
   char copy_script[100];
-  sprintf(copy_script, "cp wave_wall.c %s/wave_wall.c", results_folder);
+  sprintf(copy_script, "cp piston.c %s/piston.c", results_folder);
   if (system(copy_script)==0){
     printf("copied script to results folder\n");
   }
@@ -144,10 +167,10 @@ int main(int argc, char *argv[]) {
   DT = 0.01;
   u.n[bottom] = dirichlet(0.);
   u.t[bottom] = dirichlet(0.);
-  u.n[left] = dirichlet(0.);
-  u.n[left] = neumann(0.);
+  
+  
   u.n[right] = neumann(0.);
-  u.n[top] = neumann(0.);
+  
 #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
@@ -162,15 +185,25 @@ int main(int argc, char *argv[]) {
 event init (i = 0) {
   origin(0, -_h);
   mask_domain();
+  u.n[left] = dirichlet(Wave_VeloX(0,0,0,t)*paddle_rampoff(y));
+  p[left] = neumann(neumann_pressure_variable(0));
   //refine((fabs(y)<l/N*0.49)&&(level<=max_LEVEL));
   //mvtu(42);
   fraction (f, - y); //set the water depth _h
   while (adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax,uemax,pemax, femax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
     fraction (f, - y); //set the water level on the refined mesh
-  } 
-  foreach(){
-    pf[] = 0;
-    p[] = pf[];
+  }
+  // foreach(){
+  //   pf[] = 0;
+  //   p[] = pf[];
+  // }
+  // foreach(){
+  //   myramp[] = paddle_rampoff(y);
+  // }
+  double myy=-0.6;
+  for (int j =0;myy<0.3;j++){
+    printf("y:%f, ramp:%f\n", myy, paddle_rampoff(myy));
+    myy+=0.05;
   }
 }
 
@@ -180,20 +213,9 @@ And to minimise the error in the velocity field.
  */
 event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax, uemax, pemax, femax}, max_LEVEL, LEVEL,padding);
-  unrefine ((y>0.1));//unrefine the air
+  //unrefine ((y>0.1));//unrefine the air
 }
 
-
-/**
-The moving piston is implemented via Stephane's trick. Note that this
-piston is leaky.
-*/
-event piston (i++, first) {
-  piston_counter = floor(t*file_samplerate);
-  //printf("t:%f, file_timestep:%d, %%to next file timestep:%.0f%%, piston_position:%f\n", t, piston_counter, counter_remainder*100, piston_position);
-  U_X = piston_ux[piston_counter];
-  u.n[left] = dirichlet(U_X);
-}
 
 event surface_probes(t+=0.01){
   char filename[100];
@@ -227,6 +249,8 @@ event surface_probes(t+=0.01){
   fprintf(fp, "\n");
   fclose(fp);
 }
+
+
 
 //save unordered mesh
 event vtu(t+=0.1, last){

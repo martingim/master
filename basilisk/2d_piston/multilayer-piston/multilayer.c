@@ -36,7 +36,7 @@ int file_samplerate = 100; //the samplerate of the piston speed file
 #define piston_timesteps 10000//the max number of timesteps in the piston file
 int piston_counter;
 double piston_ux[piston_timesteps];
-double U_X = 0.; //the speed of the piston
+double neumann_pressure[piston_timesteps];
 //piston parameters 
 
 char results_folder[40]; //the location to save the results
@@ -67,6 +67,10 @@ void read_piston_data(){
   for (int i=count;i<piston_timesteps;i++){
     piston_ux[i] = 0; //set the remaining timesteps to 0
   }
+  // for (int i=0;i<piston_timesteps-1;i++){
+  //   neumann_pressure[i] = (piston_ux[i+1]-piston_ux[i])*file_samplerate;
+  // }
+  // neumann_pressure[piston_timesteps-1] = 0;
 }
 
 event setup_probe_positions(i=0){
@@ -78,11 +82,13 @@ event setup_probe_positions(i=0){
 }
 
 
-double asdf = 1.;
-event piston_update(i++){
-  piston_counter = floor(t*file_samplerate);
-  u.n[left] = dirichlet(piston_ux[piston_counter]*asdf);
+double Wave_VeloX(double x, double y, double z, double t){
+  return piston_ux[(int)floor(t*file_samplerate)];
 }
+
+// double neumann_pressure_function(double t){
+//   return neumann_pressure[(int) floor(t*file_samplerate)];
+// }
 
 event init (i = 0)
 {
@@ -90,8 +96,7 @@ event init (i = 0)
   fprintf(stderr, "current threads:%d\n", omp_get_num_threads());
   fprintf(stderr, "max number of openmp threads:%d\n", omp_get_max_threads());
   #endif
-  // u.n[right] = dirichlet(0);
-  //u.n[left] = neumann(0);
+ 
   geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
   foreach() {
     zb[] = -h_;
@@ -99,6 +104,12 @@ event init (i = 0)
       h[] = (max(- zb[], 0.))*beta[point.l];
     }
   }
+
+  //# define neumann_pressure_variable(i) ((neumann_pressure_function(t)))
+  # define neumann_pressure_variable(i) (((Wave_VeloX(0, 0, 0, t+dt)-Wave_VeloX(0, 0, 0, t))/dt))
+  u.n[left] = dirichlet(Wave_VeloX(0,0,0,t));
+  phi[left] = neumann(neumann_pressure_variable(0));
+  
   
   // foreach() {
   //  zb[] = -h_;
@@ -121,6 +132,10 @@ int main(int argc, char *argv[])
     if (strcmp(argv[j], "-nl") == 0)
     {                
       nl = atoi(argv[j + 1]); 
+    }
+    if (strcmp(argv[j], "-r") == 0)
+    {                
+      run_number = atoi(argv[j + 1]); 
     }
   }
   //make folders for saving the results
@@ -153,8 +168,9 @@ int main(int argc, char *argv[])
   L0 = Lx;
   G = 9.81;
   breaking = 0.1;
-  CFL_H = .5;
+  //CFL_H = .1;
   TOLERANCE = 10e-5;
+  //printf("TOLERANCE:%f\n", TOLERANCE);
   //theta_H = 0.51;
   #if _OPENMP
   if (set_n_threads>0)
@@ -171,7 +187,8 @@ int main(int argc, char *argv[])
   run();
   }
 #if _OPENMP
-event output_field (t <= Tend; t += 1)
+//event output_field (t <= Tend; t += 1)
+event output_field (t<=Tend; i++)
 {
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
     static int j = 0;
@@ -249,7 +266,7 @@ event show_progress(i++)
   printf("%.2f%%\n", progress*100);
 }
 
-event surface_probes(t+=0.01){
+event surface_probes(t+=0.1){
   char filename[100];
   sprintf(filename, "%s/surface_probes.csv", results_folder);
   FILE *fp = fopen(filename, "a");
@@ -260,7 +277,7 @@ event surface_probes(t+=0.01){
       }
       fprintf(fp, "\n");
   }
-  fprintf(fp, "%f, %f", t, U_X);
+  fprintf(fp, "%f, %f", t, Wave_VeloX(0,0,0,t));
   for (int probe_n=0;probe_n<n_probes;probe_n++){
     
     fprintf(fp, ", %f", interpolate(eta, probe_positions[probe_n],-h_));

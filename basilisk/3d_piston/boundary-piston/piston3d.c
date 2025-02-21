@@ -61,7 +61,7 @@ double ramp_distance = 0.1;
 # define neumann_pressure_variable(i) ((paddle_rampoff(y)*(Wave_VeloX(0,0,z,t+dt)-Wave_VeloX(0,0,z,t))/dt - a.n[i])*fm.n[i]/alpha.n[i])
 
 void read_piston_data(){
-  char piston_file[50];
+  char piston_file[60];
   for (int n=0;n<n_pistons;n++){
     int count = 0;
     FILE *file;
@@ -85,6 +85,9 @@ void read_piston_data(){
       }
     
     fclose(file);
+  }
+  for (int n=0;n<piston_timesteps;n++){
+    piston_ux[4][n] = -piston_ux[4][n];
   }
   
 }

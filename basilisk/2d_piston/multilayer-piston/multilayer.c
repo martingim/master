@@ -277,11 +277,7 @@ event surface_probes(t+=0.1){
       }
       fprintf(fp, "\n");
   }
-<<<<<<< HEAD
   fprintf(fp, "%f, %f", t, Wave_VeloX(0,0,0,t));
-=======
-  fprintf(fp, "%f", t);
->>>>>>> e82edc17ceb49d294fe26d696c6d2887dd434cf7
   for (int probe_n=0;probe_n<n_probes;probe_n++){
     
     fprintf(fp, ", %f", interpolate(eta, probe_positions[probe_n],-h_));

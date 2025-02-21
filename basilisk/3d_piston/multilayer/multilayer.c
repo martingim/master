@@ -28,7 +28,7 @@ double rmin = 0.5;  //rmin the relative height of the top layer compared to
 double h_ = 0.6;                   
 char save_location[] = "./";
 
-int set_n_threads = 6; //set number of threads manually
+int set_n_threads = 2; //set number of threads manually
 #define nl_ 10  //the default number of layers if none are given as command line arguments
 #define g_ g
 
@@ -39,26 +39,51 @@ char vts_folder[50]; //the locaton to save the vtu files
 
 //piston file 
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
-double U_X = 0.; //the speed of the piston
-double piston_f = 1.425;
-double piston_amplitude = 0.042*0.308;
-double _2 = 2;
-double _4 = 4;
 //piston parameters 
 double piston_width = 0.5;
-scalar pstn1[],pstn2[],pstn3[],pstn4[],pstn5[],pstn6[],pstn7[],pstn8[],pstn9[],pstn10[],pstn11[],pstn12[],pstn13[],pstn14[];
-scalar * pistons = {pstn1,pstn2,pstn3,pstn4,pstn5,pstn6,pstn7,pstn8,pstn9,pstn10,pstn11,pstn12,pstn13,pstn14};
+int file_samplerate = 100; //the samplerate of the piston speed file
+#define n_pistons 14 //number of pistons in the tank
+#define piston_timesteps 10000//the max number of timesteps in the piston file
+char piston_folder[40];
+double piston_ux[n_pistons][piston_timesteps];
+
+void read_piston_data(){
+  char piston_file[60];
+  for (int n=0;n<n_pistons;n++){
+    int count = 0;
+    FILE *file;
+    sprintf(piston_file, "%spiston_speed_%02d.dat", piston_folder, n);
+    printf("opening piston file:%s\n", piston_file);
+
+    file = fopen(piston_file, "r");
+    if(!file)
+      {
+        perror("Error opening piston position file");
+      }
+
+      int _running=1;
+      while(_running && count< piston_timesteps ){
+        _running = fscanf(file, "%lf", &(piston_ux[n][count]));
+        count++;
+      }
+      while (count<piston_timesteps){
+        piston_ux[n][count]=0;
+        count++;
+      }
+    
+    fclose(file);
+  }
+  for (int n=0;n<piston_timesteps;n++){
+    piston_ux[4][n] = -piston_ux[4][n];
+  }
+}
 
 
-event piston_update(i++){
-  if (t<0.1){
-    U_X = 0;
-  }
-  else{
-  U_X = piston_amplitude*(_4/cosh(_2*t-0.2)/cosh(_2*t-0.2)*tanh(_2*t-0.2)*sin(2*pi*piston_f*t-0.34) + 2*piston_f*pi*cos(2*pi*piston_f*t-0.34)*tanh(_2*t-0.2)*tanh(_2*t-0.2));
-  }
-  //u.n[left] = dirichlet(U_X*(pstn1[]+pstn2[]+pstn3[]+pstn4[]-pstn5[] - pstn6[] +pstn7[] - pstn8[] + pstn9[] + 1.5*pstn10[]+ 2*pstn11[]+2.5*pstn12[]+pstn13[]+pstn14[])); 
-  u.n[left] = dirichlet(U_X);
+double Wave_VeloX(double x, double y, double z, double t){
+  int piston_number = 0;
+  piston_number = (int) floor(y/piston_width);
+  return piston_ux[piston_number][(int) floor(t*file_samplerate)];
+  
 }
 
 event init (i = 0)
@@ -76,12 +101,11 @@ event init (i = 0)
       h[] = (max(- zb[], 0.))*beta[point.l];
     }
   }
-
-  int piston_i =0; 
-  for (scalar pstn in pistons){
-    fraction(pstn, piston_width/2.-fabs(y-(piston_i+0.5)*piston_width));
-    piston_i += 1;
-  }
+  //# define neumann_pressure_variable(i) ((neumann_pressure_function(t)))
+  # define neumann_pressure_variable(i) (((Wave_VeloX(x, y, z, t+dt)-Wave_VeloX(x, y, z, t))/dt))
+  u.n[left] = dirichlet(Wave_VeloX(x,y,z,t));
+  phi[left] = neumann(neumann_pressure_variable(0));
+  
 }
 int main(int argc, char *argv[])
   {
@@ -120,8 +144,11 @@ int main(int argc, char *argv[])
     printf("made results folder:%s\n", results_folder);
   }
   
-  
-  //copy the script to the results folder for later incpection if needed
+  //piston data
+  sprintf(piston_folder, "piston_files/%d/", run_number);
+  printf("%s\n", piston_folder);
+  read_piston_data();
+  //copy the script to the results folder for later inspection if needed
   char copy_script[100];
   sprintf(copy_script, "cp multilayer.c %s/multilayer.c", results_folder);
   if (system(copy_script)==0){
@@ -134,6 +161,7 @@ int main(int argc, char *argv[])
   breaking = 0.1;
   CFL_H = .5;
   TOLERANCE = 10e-5;
+  DT = 0.01;
   //theta_H = 0.51;
   #if _OPENMP
   if (set_n_threads>0)
@@ -166,6 +194,7 @@ event output_field (t <= Tend; t += 1)
     #endif
 }
 #endif
+/**
 event movie (t += 1./25., t <= Tend)
 {
   view (fov = 17.3106,quat = {0.549, -0.058, -0.101, 0.828},
@@ -177,7 +206,7 @@ event movie (t += 1./25., t <= Tend)
   squares ("eta", linear = true, z = "eta", min = -0.05, max = 0.06);
   save ("movie.mp4");
 }
-
+**/
 /**
 We use gnuplot to visualise the wave profile as the simulation
 runs and to generate a snapshot at $t=Tend$.*/

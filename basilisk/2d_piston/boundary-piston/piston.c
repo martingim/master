@@ -1,7 +1,9 @@
 /*
  * sets the left boundary condition to the speed of the piston movement
  * reads piston position data from file.
+ * Thank you to Oystein Lande for how to implement the boundary conditions
  */
+
 #include <sys/stat.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,9 +21,9 @@
 #include "output_vtu_foreach.h"
 
 int set_n_threads = 2; //0 to use all available threads for OPENMP
-int LEVEL = 6;
-int max_LEVEL = 10; //Default level if none is given as command line argument
-int padding = 2;
+int LEVEL = 6;      //length_of domain/2**LEVEL the largest cells used
+int max_LEVEL = 10; //Default level if none is given as command line argument length_of_domain/2**max_LEVEL the size of the smallest cells
+int padding = 2;    //How many cells around the air water interface that should keep the highest refinement level
 
 #define _h 0.6//water depth
 double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
@@ -31,24 +33,27 @@ double uemax = 0.01;
 double pemax = .01;
 double Tend = 25.;
 
-double probe_positions[144];
-int n_probes = 144;
-int n_extra_probe = 4;
-double extra_probe_positions[]={1.50, 10.04, 10.75, 11.50};
-double ramp_start = 0.1;
-double ramp_distance = 0.1;
-vector h[]; //scalar field of the distance from the surface, using heights.h
 char results_folder[40]; //the location to save the results
 char vtu_folder[50]; //the locaton to save the vtu files
 
+//surface probes
+double probe_positions[144]; //surface probes that meausre the elevation of the free surface spaced 0.1m apart
+int n_probes = 144;
+int n_extra_probe = 4;
+double extra_probe_positions[]={1.50, 10.04, 10.75, 11.50}; //extra surface probes at these positions(will be the first probes in the surfacs_probes file)
+vector h[]; //scalar field for calculating the distance from the surface, using heights.h
+
+//rampoff 
+double ramp_start = 0.1;    //where the rampoff of the piston function starts. Meters above the still water level
+double ramp_distance = 0.1; //the length of the rampoff zone
+
 //piston file 
-int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
+int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/piston_speed.dat";
 int file_samplerate = 100; //the samplerate of the piston position file
 #define piston_timesteps 10000//the number of timesteps in the piston file
 double piston_ux[piston_timesteps];
-double U_X = 0.; //the speed of the piston
-//scalar myramp[];
-//piston parameters 
+
+//pressure calculated from the piston movement for the boundary condition
 # define neumann_pressure_variable(i) ((paddle_rampoff(y)*(Wave_VeloX(0,0,0,t+dt)-Wave_VeloX(0,0,0,t))/dt - a.n[i])*fm.n[i]/alpha.n[i])
 
 void read_piston_data(){
@@ -75,11 +80,8 @@ void read_piston_data(){
   }
 }
 
-double paddle_rampoff(double y){ //set the rampoff distance and start higher up in the code
+double paddle_rampoff(double y){
   double ramp = 1;
-  if (y<ramp_start){
-    ramp = 1;
-  }
   if (y>ramp_start){
     ramp = (ramp_start+ramp_distance-y)/ramp_distance;
     if (y>ramp_start+ramp_distance){
@@ -109,13 +111,13 @@ int main(int argc, char *argv[]) {
   
   //set max_LEVEL and run number from command line args
   for(int j=0;j<argc;j++){
-    if (strcmp(argv[j], "-L") == 0) // This is your parameter name
+    if (strcmp(argv[j], "-L") == 0) //check for command line flag
         {                 
-            max_LEVEL = atoi(argv[j + 1]);    // The next value in the array is your value
+            max_LEVEL = atoi(argv[j + 1]);
         }
-    if (strcmp(argv[j], "-r") == 0) // This is your parameter name
+    if (strcmp(argv[j], "-r") == 0)
         {                 
-            run_number = atoi(argv[j + 1]);    // The next value in the array is your value
+            run_number = atoi(argv[j + 1]);
         }  
   }
 

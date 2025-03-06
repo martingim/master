@@ -1,10 +1,8 @@
 # Movies showcasing different simulations of wavetank with piston
+## Different ways of handling the top boundary
 
-<div align="center">
-  <video src="boundary-piston-top-boundary-comparison.avi" width="400" />
-</div>
+<video src="https://github.com/user-attachments/assets/120a3ef6-0359-4565-b060-0e93d705cfcd" width="400" />
 
-<video src="https://github.com/user-attachments/assets/120a3ef6-0359-4565-b060-0e93d705cfcd" width="300" />
+The bottom simulation with a coarser mesh above the waves is the most stable and destroys the vortexes in the air phase before the reach the top boundary
 
-https://github.com/user-attachments/assets/120a3ef6-0359-4565-b060-0e93d705cfcd
 

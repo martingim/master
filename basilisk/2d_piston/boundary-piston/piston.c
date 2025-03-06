@@ -105,14 +105,6 @@ event setup_probe_positions(i=0){
   }
 }
 
-void mask_domain(){
-  //mask away the top of the domain
-  mask(y > domain_height - _h ? top : none);
-  u.n[top]  = neumann(0.);
-  p[top]    = dirichlet(0.);
-  u.t[top]   = dirichlet(0.);
-}
-
 int main(int argc, char *argv[]) {
   
   //set max_LEVEL and run number from command line args
@@ -136,24 +128,19 @@ int main(int argc, char *argv[]) {
   if (system(remove_old_results)==0){
     printf("removed old results in:%s\n", results_folder);
   }
-  // myramp.refine = myramp.prolongation = fraction_refine;
-  // foreach(){
-  //   myramp[] = paddle_rampoff(y);
-  // }
+  
   char make_results_folder[100];
   sprintf(make_results_folder, "mkdir -p %s", vtu_folder);
   if (system(make_results_folder)==0){
     printf("made results folder:%s\n", results_folder);
   }
-  
-  
+    
   //copy the script to the results folder for later incpection if needed
   char copy_script[100];
   sprintf(copy_script, "cp piston.c %s/piston.c", results_folder);
   if (system(copy_script)==0){
     printf("copied script to results folder\n");
   }
-
   
   read_piston_data();
   L0 = l;
@@ -166,7 +153,6 @@ int main(int argc, char *argv[]) {
   N = 1 << LEVEL;
   DT = 0.01;
   
-  
 #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
@@ -178,31 +164,31 @@ int main(int argc, char *argv[]) {
   run();
 }
 
+
+void mask_domain(){
+  //mask away the top of the domain
+  mask(y > domain_height - _h ? top : none);
+}
+
 event init (i = 0) {
   origin(0, -_h);
   mask_domain();
+  // boundary conditions
+  u.n[top]  = neumann(0.);
+  p[top]    = dirichlet(0.);
+  u.t[top]  = dirichlet(0.);
+  
   u.n[left] = dirichlet(Wave_VeloX(0,0,0,t)*paddle_rampoff(y));
-  p[left] = neumann(neumann_pressure_variable(0));
+  p[left]   = neumann(neumann_pressure_variable(0));
+  
   u.n[bottom] = dirichlet(0.);
   u.t[bottom] = dirichlet(0.);
-  u.n[right] = neumann(0.);
-  //refine((fabs(y)<l/N*0.49)&&(level<=max_LEVEL));
-  //mvtu(42);
+
+  u.n[right]  = neumann(0.);
+  
   fraction (f, - y); //set the water depth _h
   while (adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax,uemax,pemax, femax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
     fraction (f, - y); //set the water level on the refined mesh
-  }
-  // foreach(){
-  //   pf[] = 0;
-  //   p[] = pf[];
-  // }
-  // foreach(){
-  //   myramp[] = paddle_rampoff(y);
-  // }
-  double myy=-0.6;
-  for (int j =0;myy<0.3;j++){
-    printf("y:%f, ramp:%f\n", myy, paddle_rampoff(myy));
-    myy+=0.05;
   }
 }
 
@@ -212,7 +198,8 @@ And to minimise the error in the velocity field.
  */
 event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax, uemax, pemax, femax}, max_LEVEL, LEVEL,padding);
-  //unrefine ((y>0.1));//unrefine the air
+  unrefine ((y>0.1)); //unrefine the air above the waves. make sure the waves are not so high that they get unrefined
+                      //this is necessary to avoid problems when air vortexes reach the top boundary
 }
 
 
@@ -249,8 +236,6 @@ event surface_probes(t+=0.01){
   fclose(fp);
 }
 
-
-
 //save unordered mesh
 event vtu(t+=0.1, last){
   printf("Saving vtu file\n");
@@ -258,43 +243,6 @@ event vtu(t+=0.1, last){
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
 }
-
-
-// void mvtu(int s){
-//   printf("Saving vtu file\n");
-//   char filename[40];
-//   sprintf(filename, "%s/vtu/TIME-%d", results_folder, s);
-//   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
-// }
-
-// event vtu(i++){
-//   printf("Saving vtu file\n");
-//   char filename[40];
-//   sprintf(filename, "%s/vtu/step-%05d", results_folder, i);
-//   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
-// }
-// event move_results(t=0)
-// {
-//   char results_folder[40];
-//   char make_folder[100];
-//   sprintf(results_folder, "./results/run%d/LEVEL%d", run_number, max_LEVEL); 
-//   sprintf(remove_folder, "rm -r %s", results_folder); 
-//   sprintf(make_folder, "mkdir -p %s", results_folder);
-  
-
-
-//   if (system(remove_folder)==0){ 
-//     printf("removed previous run results folder\n");
-//   }
-//   if (system(make_folder)==0){
-//     printf("made folder for results:%s\n", results_folder);
-//   }
-
-  
-  //mkdir(results_folder, 0755);
-  //system(sprintf("rm -r %s", results_folder));//remove the results folder if it already exists
-  //mkdir(results_folder,0755);
-// }
 
 /*
 simulation stopped at Tend
@@ -308,7 +256,6 @@ event show_progress(i++)
   //progress = t /Tend;
   //printf("%.2f%%\r", progress*100);
 }
-
 
 event profiling (i += 20) {
   static FILE * fp = fopen ("profiling", "w");

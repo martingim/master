@@ -17,15 +17,19 @@ int vtucount = 0;
 The primary parameters are the wave steepness $ak$ and the wavenumber
 */
 double T0 = 10;
-double ak = 0.17;
-int LEVEL = 5;
+double ak = 0.16314515;
+int LEVEL = 3;
 int max_LEVEL = 8;
 int padding =  2;
-double Lx = 0.7903377744879982;
+double Lx = 0.7895; // the wavelength of the wave
+int n_waves = 4; // the number of wavelengths to fit in the domain
 
+int set_n_threads = 2;
 vector h[]; //scalar field of the distance from the surface, using heights.h
 char results_folder[40]; //the location to save the results
 char vtu_folder[50]; //the locaton to save the vtu files
+char energy_file[60];
+
 
 int n_probes = 1;
 double probe_positions[] = {0.00001};
@@ -33,13 +37,13 @@ double probe_positions[] = {0.00001};
 The error on the components of the velocity field used for adaptive
 refinement. */
 
-double uemax = 0.05;
+double uemax = 0.1;
 
 /**
 The wave number, fluid depth and acceleration of gravity are set to
 these values. *T0* is simulation duration */
 
-#define k_  7.95
+#define k_  7.9583
 #define h_   0.6
 #define g_   9.81
 
@@ -53,10 +57,16 @@ int main (int argc, char * argv[])
     if (strcmp(argv[j], "-L") == 0) 
     {                 
       max_LEVEL = atoi(argv[j + 1]);
+      LEVEL = max_LEVEL - 4;
+    }
+    if (strcmp(argv[j], "-n") == 0) 
+    {                 
+      n_waves = atoi(argv[j + 1]);
     }
   }
-  sprintf(results_folder, "results/LEVEL%d", LEVEL);
+  sprintf(results_folder, "results/LEVEL%d_nwaves%d", max_LEVEL, n_waves);
   sprintf(vtu_folder, "%s/vtu", results_folder);
+  sprintf(energy_file, "%s/energy.txt", results_folder);
 
 
   char remove_old_results[100];
@@ -72,7 +82,7 @@ int main (int argc, char * argv[])
   }
   
 
-  L0 = Lx;   
+  L0 = Lx*n_waves;   
   origin (-L0/2, -h_);
   periodic (right);
 
@@ -85,9 +95,16 @@ int main (int argc, char * argv[])
   mu1 = 8.9e-4;
   mu2 = 17.4e-6;
   G.y = -g_;
-
+  
   N = 1 << LEVEL;
-  DT = 1e-2;
+  DT = 0.1e-2;
+#if _OPENMP
+  int num_omp = omp_get_max_threads();
+  fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
+  if (set_n_threads){  //set number of omp threads
+    omp_set_num_threads(set_n_threads);
+  }
+  fprintf(stderr, "set openmp threads:%d\n", omp_get_max_threads());
   run();
 }
 
@@ -101,14 +118,32 @@ using the third-order Stokes wave solution. */
 
 event init (i = 0)
 {
+  u.n[top] = neumann(0);
+  p[top]    = dirichlet(0.);
+  u.t[top]  = dirichlet(0.);
     
   fraction (f, wave(x, y)); //set the water depth
-  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax,uemax,uemax, uemax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
-    fraction (f, wave(x, y)); //set the water level on the refined mesh
-  }
   foreach()
     foreach_dimension()
-      u.x[] = u_x(x,y) * f[];
+      u.x[] = u_x(x,y) * f[];  
+      //if (f[]>0.01)
+        //u.x[] = u_x(x,y);
+  
+  while (adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax,uemax,uemax, uemax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
+    printf("refining\n");
+    fraction (f, wave(x, y)); //set the water level on the refined mesh
+    foreach()
+      foreach_dimension()
+    //   if (f[]>0.01)
+    //     u.x[] = u_x(x,y);
+        u.x[] = u_x(x,y) * f[];
+  }
+  // foreach()
+  //   foreach_dimension()
+  //     if (f[]>0.01)
+  //       u.x[] = u_x(x,y);
+    
+  
   
 
   /**
@@ -123,28 +158,38 @@ event init (i = 0)
 //   fprintf (stderr, "\n");
 // }
 
-// event logfile (i++)
-// {
-//   double ke = 0., gpe = 0.;
-//   foreach (reduction(+:ke) reduction(+:gpe)) {
-//     double norm2 = 0.;
-//     foreach_dimension()
-//       norm2 += sq(u.x[]);
-//     ke += norm2*f[]*dv();
-//     gpe += y*f[]*dv();
-//   }
-//   printf ("%g %g %g\n", t/(k_/sqrt(g_*k_)), rho1*ke/2., rho1*g_*gpe + 0.125);
-// }
+event logfile (i++)
+{ 
+
+  FILE *fp = fopen(energy_file, "a");
+    if (i==0){
+      fprintf(fp, "t, ke, gpe\n");
+  }
+
+  double ke = 0., gpe = 0.;
+  foreach (reduction(+:ke) reduction(+:gpe)) {
+    double norm2 = 0.;
+    foreach_dimension()
+      norm2 += sq(u.x[]);
+    ke += norm2*f[]*dv();
+    gpe += y*f[]*dv();
+  }
+
+  fprintf(fp, "%g, %e, %e\n", t, rho1*ke/2., rho1*g_*gpe);
+  fclose(fp);
+}
+
 
 //save unordered mesh
 event vtu(t+=.1, last){
-  printf("Saving vtu file\n");
+  //printf("Saving vtu file\n");
   char filename[100];
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
 }
 
 event adapt (i++) {
+  printf("i=%d\r", i);
   adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax, uemax, uemax, uemax}, max_LEVEL, LEVEL,padding);
 }
 
@@ -180,4 +225,10 @@ event surface_probes(t+=0.01, t<T0){
   }
   fprintf(fp, "\n");
   fclose(fp);
+}
+
+
+event show_progress(i++)
+{
+  printf("t=%02.3f, i=%04d, dt=%.3g\n", t, i, dt);
 }

@@ -204,7 +204,7 @@ event logfile (i++)
   }
   if (i == 0)
     fprintf (fp, "ke, gpe, t\n");
-  fprintf(fp, "%f, %f, %f\n", ke, gpe, t);
+  fprintf(fp, "%f, %f, %f\n", rho1*ke/2., rho1*g_*gpe, t);
 }
 
 

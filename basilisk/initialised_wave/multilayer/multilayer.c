@@ -17,26 +17,26 @@ the parameters for the wave are from
 #include "layered/perfs.h"
 #include "output_pvd.h"
 
-double ak = 0.17;   //wave steepness
-double Tend = 10;    //the end time of the simulation
-double Lx = 0.78944413720585; //The length of the simulation domain 2*pi/k
-double k = 7.959;    //the wavenumber
-0.78944413720585
-double g = 9.81;
+
+int set_n_threads = 2; //set to 0 to use all available threads (I got best results with 1 thread per core)
+double Tend = 10;     //the end time of the simulation
+#define nl_ 10  //the default number of layers if none are given as command line arguments
+double rmin = 0.3;  //rmin the relative height of the top layer compared to a regular distribution. the rest fo the layers follow a geometric distribution.
 int LEVEL = 7;      //the grid resolution in x direction Nx = 2**LEVEL
-double rmin = 0.3;  //rmin the relative height of the top layer compared to 
-double h_ = 0.6;                   //a regular distribution. the rest fo the layers follow a 
-                                   //geometric distribution.
+double rho = 997;
+double k_ = 7.9596;    //the wavenumber
+double a = 0.0205;    //the amplitude of the wave
+double h_ = 0.6;      //water depth
+
+int n_waves = 1;      //number of waves to fit the domain to 
+#define Lx 2*pi/k_*n_waves  // the length of the simulation domain
+#define ak a*k_  //wave steepness
+                    
 char results_folder[40]; //the location to save the results
 char vts_folder[50]; //the locaton to save the vtu files
 char guage_name[50];
 
-
-#define nl_ 10  //the default number of layers if none are given as command line arguments
-#define k_ k
-//#define h_ 0.6  //the water depth
-#define g_ g    
-#define T0 0.7115297011824904 //the period of the waves
+#define g_ 9.81
 #include "test/stokes.h" //third order stokes wave
 
 
@@ -47,11 +47,10 @@ and the velocity field*/
 event init (i = 0)
 {
   geometric_beta(rmin, true); //set the layer thickness smaller nearer the surface
-  //set the thickess of the layer based on the surface of the wave
   foreach() {
     zb[] = -h_;
     foreach_layer(){
-      h[] = (max(- zb[], 0.)+wave(x, y))*beta[point.l];
+      h[] = (max(- zb[], 0.)+wave(x, z))*beta[point.l]; //set the thickess of the layer based on the surface of the wave
     }
   }
   /*set the velocity field of the wave*/
@@ -64,13 +63,6 @@ event init (i = 0)
       z += h[]/2;
     }
   }
-#if _MPI
-  fprintf(stderr, "mpi\n");
-#else
-  int num_omp = omp_get_max_threads();
-  fprintf(stderr, "number of openmp threads:%d\n", num_omp);
-#endif
-
 }
 
 int main(int argc, char *argv[])
@@ -84,6 +76,10 @@ int main(int argc, char *argv[])
     if (strcmp(argv[j], "-nl") == 0)
     {                
       nl = atoi(argv[j + 1]); 
+    }
+    if (strcmp(argv[j], "-n") == 0)
+    {                
+      n_waves = atoi(argv[j + 1]);
     }
   }
 
@@ -116,18 +112,29 @@ int main(int argc, char *argv[])
   periodic(right);
   N = 1<<LEVEL;
   L0 = Lx;
-  G = g;
+  G = g_;
   breaking = 0.1;
   CFL_H = .1;
   TOLERANCE = 10e-5;
   theta_H = 0.51;
-  run();
+  nu = 1e-6;
+  printf("nu:%e\n", nu);
+  #if _OPENMP
+  int num_omp = omp_get_max_threads();
+  fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
+  if (set_n_threads){  //set number of omp threads
+    omp_set_num_threads(set_n_threads);
+  }
+  fprintf(stderr, "set openmp threads:%d\n", omp_get_max_threads());
+#endif
+  
+run();
 }
 
 event save_velocity(t += Tend; t<=Tend)
 {
   char filename[200];
-  sprintf(filename, "%svelocities_nx%d_nl%d_timestep_%d.csv", results_folder, 1<<LEVEL, nl, i);
+  sprintf(filename, "%s/velocities_nx%d_nl%d_timestep_%d.csv", results_folder, 1<<LEVEL, nl, i);
   fprintf(stderr, "saving results to:%s\n", filename);
   FILE *fp = fopen(filename, "w"); //if at the first timestep overwrite the previous file, can later add run parameters here
   fprintf(fp, "\"Time\",\"layer\",\"Points:0\",\"Points:1\",\"Points:2\",\"u.x\",\"u.z\",\"eta\"\n");
@@ -142,10 +149,10 @@ event save_velocity(t += Tend; t<=Tend)
   fclose(fp); 
 }
 
-event save_energy(t+=1)
+event save_energy(i++)
 {
   char filename[200];
-  sprintf(filename, "%senergy_nx%d_nl%d.csv", results_folder, 1<<LEVEL, nl);
+  sprintf(filename, "%s/energy_nx%d_nl%d.csv", results_folder, 1<<LEVEL, nl);
   static FILE * fp = fopen(filename, "w");
   double gpe = 0.;
   double ke = 0.;
@@ -162,8 +169,8 @@ event save_energy(t+=1)
     }
   }
   if (i == 0)
-    fprintf (fp, "ke, gpe, t\n");
-  fprintf(fp, "%f, %f, %f\n", ke, gpe, t);
+    fprintf (fp, "t, ke, gpe\n");
+  fprintf(fp, "%f, %e, %e\n", t, rho*ke/2., rho*g_*gpe);
 }
 
 /**
@@ -182,35 +189,35 @@ void plot_profile (double t, FILE * fp)
 }
 
 
-event profiles (t += 0.05)
-{
-  double ke = 0., gpe = 0.;
-  foreach (reduction(+:ke) reduction(+:gpe)) {
-    double zc = zb[];
-    foreach_layer() {
-      double norm2 = sq(w[]);
-      foreach_dimension()
-	      norm2 += sq(u.x[]);
-      ke += norm2*h[]*dv();
-      gpe += (zc + h[]/2.)*h[]*dv();
-      zc += h[];
-    }
-  }
-  static FILE * fp = popen ("gnuplot 2> /dev/null", "w");
-  if (i == 0)
-    fprintf (fp, "set term x11\n");
-  plot_profile (t, fp);
-}
+// event profiles (t += 0.05)
+// {
+//   double ke = 0., gpe = 0.;
+//   foreach (reduction(+:ke) reduction(+:gpe)) {
+//     double zc = zb[];
+//     foreach_layer() {
+//       double norm2 = sq(w[]);
+//       foreach_dimension()
+// 	      norm2 += sq(u.x[]);
+//       ke += norm2*h[]*dv();
+//       gpe += (zc + h[]/2.)*h[]*dv();
+//       zc += h[];
+//     }
+//   }
+//   static FILE * fp = popen ("gnuplot 2> /dev/null", "w");
+//   if (i == 0)
+//     fprintf (fp, "set term x11\n");
+//   plot_profile (t, fp);
+// }
 
-event gnuplot (t = Tend) {
-  FILE * fp = popen ("gnuplot", "w");
-  fprintf (fp,
-           "set term pngcairo enhanced size 640,640 font \",8\"\n"
-           "set output 'snapshot.png'\n");
-  plot_profile (t, fp);
-}
+// event gnuplot (t = Tend) {
+//   FILE * fp = popen ("gnuplot", "w");
+//   fprintf (fp,
+//            "set term pngcairo enhanced size 640,640 font \",8\"\n"
+//            "set output 'snapshot.png'\n");
+//   plot_profile (t, fp);
+// }
 
-event output_field (t <= Tend; t+=1)
+event output_field (t <= Tend; t+=.05)
 {
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
     static int j = 0;
@@ -218,7 +225,7 @@ event output_field (t <= Tend; t+=1)
     sprintf(name, "%s/field_%.6i.vts", vts_folder, j++);
     fprintf(stdout, "written to: %s\n", name);
     FILE* fp = fopen(name, "w");
-    output_vts_ascii_all_layers(fp, {eta,h,u}, N);
+    output_vts_ascii_all_layers(fp, {eta,h,u,w}, N);
     fclose(fp);
     #if _OPENMP
     omp_set_num_threads(6);

@@ -12,45 +12,36 @@ account using the "reduced gravity approach". */
 #include "output_vtu_foreach.h"
 #include "heights.h"
 int vtucount = 0;
+int set_n_threads = 2;
 
 /**
 The primary parameters are the wave steepness $ak$ and the Reynolds
 number. */
 #define TREE 0
-double ak = 0.17;
+double ak = 0.16314515;
 int LEVEL = 7;
-double Lx = 0.7903377744879982;
+double Lx = 0.7895;//set to exactly one wavelength
 
 vector h[]; //scalar field of the distance from the surface, using heights.h
 char results_folder[40]; //the location to save the results
 char vtu_folder[50]; //the locaton to save the vtu files
+char energy_file[60];
 
 int n_probes = 1;
 double probe_positions[] = {0.00001};
-/**
-The error on the components of the velocity field used for adaptive
-refinement. */
-
-double uemax = 0.005;
-
-/**
-The density and viscosity ratios are those of air and water. */
-
-#define RATIO (1./850.)
-#define MURATIO (17.4e-6/8.9e-4)
 
 /**
 The wave number, fluid depth and acceleration of gravity are set to
 these values. *T0* is simulation duration */
 
-#define k_  7.95
+#define k_  7.9583
 #define h_   0.6
 #define g_   9.81
 #define T0  10
 
 /**
-The program takes optional arguments which are the level of
-refinement, steepness and Reynolds numbers. */
+The program takes an optional argument which is the level of
+refinement */
 
 int main (int argc, char * argv[])
 {
@@ -62,7 +53,7 @@ int main (int argc, char * argv[])
   }
   sprintf(results_folder, "results/LEVEL%d", LEVEL);
   sprintf(vtu_folder, "%s/vtu", results_folder);
-
+  sprintf(energy_file, "%s/energy.txt", results_folder);
 
   char remove_old_results[100];
   sprintf(remove_old_results, "rm -r %s", results_folder);
@@ -75,73 +66,42 @@ int main (int argc, char * argv[])
   if (system(make_results_folder)==0){
     printf("made results folder:%s\n", results_folder);
   }
-  
 
   L0 = Lx;   
   origin (-L0/2, -h_);
   periodic (right);
 
-  /**
-  Here we set the densities and viscosities corresponding to the
-  parameters above. */
-  
   rho1 = 997;
   rho2 = 1.204;
   mu1 = 8.9e-4;
   mu2 = 17.4e-6;
   G.y = -g_;
-
-  /**
-  When we use adaptive refinement, we start with a coarse mesh which
-  will be refined as required when initialising the wave. */
-  
-#if TREE  
-  N = 32;
-#else
   N = 1 << LEVEL;
-#endif
   DT = 1e-2;
+#if _OPENMP
+  int num_omp = omp_get_max_threads();
+  fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
+  if (set_n_threads){  //set number of omp threads
+    omp_set_num_threads(set_n_threads);
+  }
+  fprintf(stderr, "set openmp threads:%d\n", omp_get_max_threads());
+#endif
   run();
 }
 
 /**
-## Initial conditions
-
-We either restart (if a "restart" file exists), or initialise the wave
-using the third-order Stokes wave solution. */
-
+Initialise the wave
+using the third-order Stokes wave solution. 
+*/
 #include "test/stokes.h"
 
 event init (i = 0)
 {
-  if (!restore ("restart")) {
-
-    /**
-    We need to make sure that fields are properly initialised before
-    refinement below, otherwise a
-    [-catch](/src/README#tracking-floating-point-exceptions) exception
-    will be triggered when debugging. */
-
-    event ("properties");
-    
-    do {
-      fraction (f, wave(x,y));
-      foreach()
-	foreach_dimension()
-	  u.x[] = u_x(x,y) * f[];
-    }
-
-    /**
-    On trees, we repeat this initialisation until mesh adaptation does
-    not refine the mesh anymore. */
-
-#if TREE
-    while (adapt_wavelet ({f,u},
-			  (double[]){0.01,uemax,uemax,uemax}, LEVEL, 5).nf);
-#else
-    while (0); // to match 'do' above
-#endif
-  }
+  
+  fraction (f, wave(x,y));
+  foreach()
+	  foreach_dimension()
+	    u.x[] = u_x(x,y) * f[];
 }
 
 // event profiles (t += T0/4.; t <= 2.5*T0) {
@@ -149,22 +109,30 @@ event init (i = 0)
 //   fprintf (stderr, "\n");
 // }
 
-// event logfile (i++)
-// {
-//   double ke = 0., gpe = 0.;
-//   foreach (reduction(+:ke) reduction(+:gpe)) {
-//     double norm2 = 0.;
-//     foreach_dimension()
-//       norm2 += sq(u.x[]);
-//     ke += norm2*f[]*dv();
-//     gpe += y*f[]*dv();
-//   }
-//   printf ("%g %g %g\n", t/(k_/sqrt(g_*k_)), rho1*ke/2., rho1*g_*gpe + 0.125);
-// }
+event logfile (i++)
+{ 
+
+  FILE *fp = fopen(energy_file, "a");
+    if (i==0){
+      fprintf(fp, "t, ke, gpe\n");
+  }
+
+  double ke = 0., gpe = 0.;
+  foreach (reduction(+:ke) reduction(+:gpe)) {
+    double norm2 = 0.;
+    foreach_dimension()
+      norm2 += sq(u.x[]);
+    ke += norm2*f[]*dv();
+    gpe += y*f[]*dv();
+  }
+
+  fprintf(fp, "%g, %e, %e\n", t, rho1*ke/2., rho1*g_*gpe);
+  fclose(fp);
+}
 
 //save unordered mesh
 event vtu(t+=.1, last){
-  printf("Saving vtu file\n");
+  //printf("Saving vtu file\n");
   char filename[100];
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
@@ -188,17 +156,6 @@ event vtu(t+=.1, last){
 //   vtucount += 1;
 // }
 
-/**
-## Mesh adaptation
-
-On trees, we adapt the mesh according to the error on volume fraction
-and velocity. */
-
-#if TREE
-event adapt (i++) {
-  adapt_wavelet ({f,u}, (double[]){0.01,uemax,uemax,uemax}, LEVEL, 5);
-}
-#endif
 
 event surface_probes(t+=0.01, t<T0){
   char filename[100];

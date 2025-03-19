@@ -21,7 +21,7 @@ the parameters for the wave are from
 int set_n_threads = 2; //set to 0 to use all available threads (I got best results with 1 thread per core)
 double Tend = 10;     //the end time of the simulation
 #define nl_ 10  //the default number of layers if none are given as command line arguments
-double rmin = 0.3;  //rmin the relative height of the top layer compared to a regular distribution. the rest fo the layers follow a geometric distribution.
+double rmin = 0.5;  //rmin the relative height of the top layer compared to a regular distribution. the rest fo the layers follow a geometric distribution.
 int LEVEL = 7;      //the grid resolution in x direction Nx = 2**LEVEL
 double rho = 997;
 double k_ = 7.9596;    //the wavenumber
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
       n_waves = atoi(argv[j + 1]);
     }
   }
-
+  
   sprintf(results_folder, "results/LEVEL%d_layers%d", LEVEL, nl);
   sprintf(vts_folder, "%s/vts", results_folder);
   
@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
   origin (-Lx/2., h_);
   periodic(right);
   N = 1<<LEVEL;
+  rmin = sqrt(Lx*nl/N/h_);
   L0 = Lx;
   G = g_;
   breaking = 0.1;

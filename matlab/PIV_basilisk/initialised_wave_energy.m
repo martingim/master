@@ -3,10 +3,12 @@ close all;
 close all;
 energy_files = [];
 legends = [];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL7_layers40/energy_nx128_nl40.csv"]; legends = [legends; "nx:128, l:40s, 377s"];
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL7_nwaves1/energy.txt"]; legends = [legends; "LEVEL 7 adaptive"];
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL8_nwaves1/energy.txt"]; legends = [legends; "LEVEL 8 adaptive"];
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL9_nwaves1/energy.txt"]; legends = [legends; "LEVEL 9 adaptive"];
-energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL9_layers30/energy_nx512_nl30.csv"]; legends = [legends; "30 layers, nx 512"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL10_nwaves1/energy.txt"]; legends = [legends; "LEVEL 10 adaptive"];
+% energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL9_layers30/energy_nx512_nl30.csv"]; legends = [legends; "30 layers, nx 512"];
 
 
 figure;
@@ -47,7 +49,7 @@ for i =1:size(energy_files)
     plot(t, te/ke0*100, 'DisplayName',legends(i))
     
 end
-xlim([0 25]);
+xlim([0 10]);
 ylabel('% change in energy');
 title("Change in  kinetic energy")
 legend('Location','southwest')
@@ -128,9 +130,12 @@ energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/mult
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL8_layers40/energy_nx256_nl40.csv"]; legends = [legends; "nx:256, l:40, 675s"];
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL8_layers100/energy_nx256_nl100.csv"]; legends = [legends; "nx:256, l:100, 2741s"];
 %LEVEL9
-energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL9_layers20/energy_nx512_nl20.csv"]; legends = [legends; "nx:512, l:20, s"];
-energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL9_layers40/energy_nx512_nl40.csv"]; legends = [legends; "nx:512, l:40, s"];
-energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL9_layers100/energy_nx512_nl100.csv"]; legends = [legends; "nx:512, l:100, s"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL9_layers20/energy_nx512_nl20.csv"]; legends = [legends; "nx:512, l:20, 626s"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL9_layers40/energy_nx512_nl40.csv"]; legends = [legends; "nx:512, l:40, 1676s"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL9_layers100/energy_nx512_nl100.csv"]; legends = [legends; "nx:512, l:100, 6696s"];
+%LEVEL10
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL10_layers40/energy_nx1024_nl40.csv"]; legends = [legends; "nx:1024, l:40, s"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL10_layers10/energy_nx1024_nl10.csv"]; legends = [legends; "nx:1024, l:10, s"];
 
 figure;
 hold on;

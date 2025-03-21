@@ -3,11 +3,15 @@ close all;
 close all;
 energy_files = [];
 legends = [];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL9/energy.txt"]; legends = [legends; "test case"];
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL7_layers40/energy_nx128_nl40.csv"]; legends = [legends; "nx:128, l:40s, 377s"];
-energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL7_nwaves1/energy.txt"]; legends = [legends; "LEVEL 7 adaptive"];
-energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL8_nwaves1/energy.txt"]; legends = [legends; "LEVEL 8 adaptive"];
-energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL9_nwaves1/energy.txt"]; legends = [legends; "LEVEL 9 adaptive"];
-energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL10_nwaves1/energy.txt"]; legends = [legends; "LEVEL 10 adaptive"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL7_nwaves1/energy.txt"]; legends = [legends; "nx 128 dt=0.01"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL8_nwaves1/energy.txt"]; legends = [legends; "nx 256 dt=0.005"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL9_nwaves1/energy.txt"]; legends = [legends; "nx 512 dt=0.0025"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/dt_small/LEVEL7_nwaves1/energy.txt"]; legends = [legends; "nx 128  dt=0.001"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/dt_small/LEVEL8_nwaves1/energy.txt"]; legends = [legends; "nx 256  dt=0.0005"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/dt_small/LEVEL9_nwaves1/energy.txt"]; legends = [legends; "nx 512  dt=0.00025"];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/dt_small/LEVEL10_nwaves1/energy.txt"]; legends = [legends; "nx 1024"];
 % energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL9_layers30/energy_nx512_nl30.csv"]; legends = [legends; "30 layers, nx 512"];
 
 
@@ -16,8 +20,9 @@ figure;
 hold on;
 title("percentage change in Energy compared to k")
 xlabel("t [s]")
-run = 3;
+run = 1;
 energy = readtable(energy_files(run));
+
 energy = table2array(energy);
 ke0 = energy(1,2);
 t = energy(:,1);
@@ -32,7 +37,7 @@ ylabel('% change in energy');
 legend();
 xlim([0,25]);
 fontsize(20, "points")
-print('~/Documents/master/movies_and_figures/initialised_NS_energy', '-dpng')
+%print('~/Documents/master/movies_and_figures/initialised_NS_energy', '-dpng')
 
 
 figure;
@@ -54,7 +59,7 @@ ylabel('% change in energy');
 title("Change in  kinetic energy")
 legend('Location','southwest')
 fontsize(20, "points")
-print('~/Documents/master/movies_and_figures/initialised_NS_energy_LEVEL_comparison', '-dpng')
+%print('~/Documents/master/movies_and_figures/initialised_NS_energy_LEVEL_comparison', '-dpng')
 
 %% multilayer compare Different LEVELS
 close all;

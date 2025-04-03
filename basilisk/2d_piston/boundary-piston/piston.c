@@ -28,6 +28,7 @@ int padding = 2;    //How many cells around the air water interface that should 
 #define _h 0.6//water depth
 double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
+double g_ = 9.81;
 double femax = 0.01;
 double uemax = 0.01;
 double pemax = .01;
@@ -54,12 +55,13 @@ int file_samplerate = 100; //the samplerate of the piston position file
 double piston_ux[piston_timesteps];
 
 //pressure calculated from the piston movement for the boundary condition
-# define neumann_pressure_variable(i) ((paddle_rampoff(y)*(Wave_VeloX(0,0,0,t+dt)-Wave_VeloX(0,0,0,t))/dt - a.n[i])*fm.n[i]/alpha.n[i])
+#define neumann_pressure_variable(i) ((paddle_rampoff(y)*(Wave_VeloX(0,0,0,t+dt)-Wave_VeloX(0,0,0,t))/dt - a.n[i])*fm.n[i]/alpha.n[i])
 
 void read_piston_data(){
   char piston_file[40];
 
-  sprintf(piston_file, "piston_files/%d/piston_speed.dat", run_number);
+  //sprintf(piston_file, "piston_files/%d/piston_speed.dat", run_number);
+  sprintf(piston_file, "piston_speed.dat");
   printf("piston file:%s\n", piston_file);
 
   int count = 0;
@@ -91,8 +93,14 @@ double paddle_rampoff(double y){
   return ramp;
 }
 
-double Wave_VeloX(double x, double y, double z, double t){
-  return piston_ux[(int)floor(t*file_samplerate)];
+// double Wave_VeloX(double x, double y, double z, double t){
+//   return piston_ux[(int)floor(t*file_samplerate)];
+// }
+
+double Wave_VeloX(double x , double y, double z, double t){
+  int t0_i = (int)floor(t*file_samplerate);
+  //linear interpolation of the piston speed f(t) = f(t0) +(f(t1)-f(t0))*(t-t0)/(t1-t0)
+  return piston_ux[t0_i] + (piston_ux[t0_i+1]-piston_ux[t0_i])*(t*file_samplerate-t0_i);
 }
 
 event setup_probe_positions(i=0){
@@ -151,9 +159,12 @@ int main(int argc, char *argv[]) {
   rho2 = 1.204;
   mu1 = 8.9e-4;
   mu2 = 17.4e-6;
-  G.y = - 9.81;
+  G.y = - g_;
   N = 1 << LEVEL;
-  DT = 0.01;
+  //TOLERANCE = 1e-9;
+  printf("TOLERANCE:%f\n", TOLERANCE);
+  DT = l/(1<<max_LEVEL);
+  printf("DT:%f\n", DT);
   
 #if _OPENMP
   int num_omp = omp_get_max_threads();
@@ -186,7 +197,7 @@ event init (i = 0) {
   u.n[bottom] = dirichlet(0.);
   u.t[bottom] = dirichlet(0.);
 
-  u.n[right]  = neumann(0.);
+  u.n[right]  = dirichlet(0.);
   
   fraction (f, - y); //set the water depth _h
   while (adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax,uemax,pemax, femax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
@@ -245,6 +256,27 @@ event vtu(t+=0.1, last){
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
 }
+
+
+event save_energy(t+=0.01)
+{
+  printf("saving energy\n");
+  char filename[200];
+  sprintf(filename, "%s/energy.csv", results_folder);
+  static FILE * fp = fopen(filename, "w");
+  double ke = 0., gpe = 0.;
+  foreach (reduction(+:ke) reduction(+:gpe)) {
+    double norm2 = 0.;
+    foreach_dimension()
+      norm2 += sq(u.x[]);
+    ke += norm2*f[]*dv();
+    gpe += (y+_h/2)*f[]*dv();
+  }
+  if (i == 0)
+    fprintf (fp, "ke, gpe, t\n");
+  fprintf(fp, "%f, %f, %f\n", rho1*ke/2., rho1*g_*gpe, t);
+}
+
 
 /*
 simulation stopped at Tend

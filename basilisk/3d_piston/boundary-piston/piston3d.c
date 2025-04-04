@@ -121,7 +121,9 @@ double paddle_rampoff(double y){
 double Wave_VeloX(double x, double y, double z, double t){
   int piston_number = 0;
   piston_number = (int) floor(z/piston_width);
-  return piston_ux[piston_number][(int) floor(t*file_samplerate)];
+  //linear interpolation of the piston speed
+  int t0_i = (int)floor(t*file_samplerate);
+  return piston_ux[piston_number][t0_i] + (piston_ux[piston_number][t0_i+1]-piston_ux[piston_number][t0_i])*(t*file_samplerate-t0_i);
 }
 
 void mask_domain(){

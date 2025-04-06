@@ -20,9 +20,9 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 2; //0 to use all available threads for OPENMP
+int set_n_threads = 6; //0 to use all available threads for OPENMP
 int LEVEL = 4;
-int max_LEVEL = 8; //Default level if none is given as command line argument
+int max_LEVEL = 9; //Default level if none is given as command line argument
 int padding = 0;
 
 int run_number = 1; //default run number if none is given in the command line piston files in "piston_files/%run_number/fil3.dat";
@@ -62,34 +62,41 @@ double ramp_distance = 0.1;
 
 void read_piston_data(){
   char piston_file[60];
-  for (int n=0;n<n_pistons;n++){
-    int count = 0;
-    FILE *file;
-    sprintf(piston_file, "%spiston_speed_%02d.dat", piston_folder, n);
-    printf("opening piston file:%s\n", piston_file);
+  int count = 0;
+  FILE *file;
+  sprintf(piston_file, "piston_speed.dat");
+  printf("opening piston file:%s\n", piston_file);
 
-    file = fopen(piston_file, "r");
-    if(!file)
-      {
-        perror("Error opening piston position file");
-      }
-
-      int _running=1;
-      while(_running && count< piston_timesteps ){
-        _running = fscanf(file, "%lf", &(piston_ux[n][count]));
-        count++;
-      }
-      while (count<piston_timesteps){
-        piston_ux[n][count]=0;
-        count++;
-      }
-    
-    fclose(file);
+  file = fopen(piston_file, "r");
+  if(!file){
+    perror("Error opening piston position file");
   }
-  for (int n=0;n<piston_timesteps;n++){
-    piston_ux[4][n] = -piston_ux[4][n];
+
+  int _running=1;
+  while(_running && count< piston_timesteps ){
+    for (int piston_n=0;piston_n<n_pistons;piston_n++){
+      _running = fscanf(file, "%lf", &(piston_ux[piston_n][count]));
+    }
+    count++;
   }
   
+  //set the rest of the speed to 0
+  while (count<piston_timesteps){
+    for (int piston_n=0;piston_n<n_pistons;piston_n++){
+    piston_ux[piston_n][count]=0;
+    }
+    count++;
+  }
+  
+  fclose(file);
+
+  // //print read piston data to terminal
+  // for (int i_=0;i_<piston_timesteps;i_++){
+  //   for (int j_=0;j_<n_pistons;j_++){
+  //     printf("%10.5f", piston_ux[j_][i_]);
+  //   }
+  //   printf("\n");
+  // }
 }
 
 event setup_probe_positions(i=0){
@@ -220,11 +227,6 @@ event init (i = 0) {
   fraction (f, - y); //set the water depth _h
   while (adapt_wavelet_leave_interface({u.x, u.y, u.z, p},{f},(double[]){uemax,uemax,uemax, pemax, femax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
     fraction (f, - y); //set the water level on the refined mesh
-    // int piston_i=0;
-    // for (scalar pstn in pistons){
-    //   fraction(pstn, piston_width/2.-fabs(z-(piston_i+0.5)*piston_width));
-    //   piston_i +=1;
-    // }
   }
 
   foreach(){
@@ -239,33 +241,9 @@ And to minimise the error in the velocity field.
  */
 event adapt (i++){
   adapt_wavelet_leave_interface({u.x, u.y, u.z, p},{f},(double[]){uemax, uemax, uemax, pemax, femax}, max_LEVEL, LEVEL,padding);
-  //unrefine ((y>0.1));//unrefine the air
+  unrefine ((y>0.1)); //unrefine the air
 }
 
-
-/**
-The moving piston is implemented via Stephane's trick. Note that this
-piston is leaky.
-*/
-// double piston_function(double t_){
-//   return 0.013552*(cos(8.95354*t_)/cosh(t_)/cosh(t_) - 8.95354*sin(8.95354*t_)*tanh(t_));
-// }
-// event piston (i++, first) {
-//   foreach(){
-//     pistn[]=1;
-//   }
-//   // double t_ = 0;
-//   // for (scalar pstn in pistons){
-//   //   foreach(){
-//   //     pistn[]+=pstn[]*piston_function(t+t_);
-//   //   }
-//   //   t_+=0.05;
-
-//   // }
-//   //u.n[left] = dirichlet(pstn1_u[(int)floor(t*file_samplerate)]*pstn1[]+pstn1_u[pui]*pstn2[]);
-//   // u.n[left] = dirichlet(pistn[]);
-//   u.n[left] = dirichlet(pistn[]*pstn1_u[(int)floor(t*file_samplerate)]);
-// }
 
 event surface_probes(t+=0.1){
   char filename[100];
@@ -301,52 +279,20 @@ event surface_probes(t+=0.1){
 }
 
 //save unordered mesh
-// event vtu(t+=0.1, last){
-event vtu(i++){
+event vtu(t+=0.1){
+//event vtu(i++){
   printf("Saving vtu file\n");
   char filename[100];
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*1000));
   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
 
-  //output all the piston fields
-  //output_vtu((scalar *) {f,p,pstn1,pstn2,pstn3,pstn4,pstn5,pstn6,pstn7,pstn8,pstn9,pstn10,pstn11,pstn12,pstn13,pstn14}, (vector *) {u}, filename);
 }
-
 
 // void mvtu(int s){
 //   printf("Saving vtu file\n");
 //   char filename[40];
 //   sprintf(filename, "%s/vtu/TIME-%d", results_folder, s);
 //   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
-// }
-
-// event vtu(i++){
-//   printf("Saving vtu file\n");
-//   char filename[40];
-//   sprintf(filename, "%s/vtu/step-%05d", results_folder, i);
-//   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
-// }
-// event move_results(t=0)
-// {
-//   char results_folder[40];
-//   char make_folder[100];
-//   sprintf(results_folder, "./results/run%d/LEVEL%d", run_number, max_LEVEL); 
-//   sprintf(remove_folder, "rm -r %s", results_folder); 
-//   sprintf(make_folder, "mkdir -p %s", results_folder);
-  
-
-
-//   if (system(remove_folder)==0){
-//     printf("removed previous run results folder\n");
-//   }
-//   if (system(make_folder)==0){
-//     printf("made folder for results:%s\n", results_folder);
-//   }
-
-  
-  //mkdir(results_folder, 0755);
-  //system(sprintf("rm -r %s", results_folder));//remove the results folder if it already exists
-  //mkdir(results_folder,0755);
 // }
 
 /*
@@ -361,7 +307,6 @@ event show_progress(i++)
   //progress = t /Tend;
   //printf("%.2f%%\r", progress*100);
 }
-
 
 event profiling (i += 20) {
   static FILE * fp = fopen ("profiling", "w");

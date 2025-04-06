@@ -23,13 +23,12 @@ double Tend = 20;    //the end time of the simulation
 double Lx = 7; //The length of the simulation domain
 double g = 9.81;
 int LEVEL = 8;      //the grid resolution in x direction Nx = 2**LEVEL
-double rmin = 0.5;  //rmin the relative height of the top layer compared to 
-                    //a regular distribution. the rest fo the layers follow a geometric distribution.
 double h_ = 0.6;                   
 char save_location[] = "./";
 
 int set_n_threads = 2; //set number of threads manually
 #define nl_ 10  //the default number of layers if none are given as command line arguments
+#define rmin sqrt(Lx*nl/N/h_)
 #define g_ g
 
 double t_dim = 1;
@@ -49,41 +48,43 @@ double piston_ux[n_pistons][piston_timesteps];
 
 void read_piston_data(){
   char piston_file[60];
-  for (int n=0;n<n_pistons;n++){
-    int count = 0;
-    FILE *file;
-    sprintf(piston_file, "%spiston_speed_%02d.dat", piston_folder, n);
-    printf("opening piston file:%s\n", piston_file);
+  
+  int count = 0;
+  FILE *file;
+  sprintf(piston_file, "%spiston_speed.dat", piston_folder);
+  printf("opening piston file:%s\n", piston_file);
 
-    file = fopen(piston_file, "r");
-    if(!file)
-      {
-        perror("Error opening piston position file");
-      }
+  file = fopen(piston_file, "r");
+  if(!file)
+    {
+      perror("Error opening piston position file");
+    }
 
-      int _running=1;
-      while(_running && count< piston_timesteps ){
-        _running = fscanf(file, "%lf", &(piston_ux[n][count]));
-        count++;
+    int _running=1;
+    while(_running && count< piston_timesteps ){
+      for (int piston_n=0;piston_n<n_pistons;piston_n++){
+        _running = fscanf(file, "%lf", &(piston_ux[piston_n][count]));
       }
-      while (count<piston_timesteps){
-        piston_ux[n][count]=0;
-        count++;
-      }
-    
-    fclose(file);
+      count++;
+    }
+  
+  fclose(file);
+
+  while (count<piston_timesteps){
+    for (int piston_n=0;piston_n<n_pistons;piston_n++){
+      piston_ux[piston_n][count]=0;
+    }
+    count++;
   }
-  for (int n=0;n<piston_timesteps;n++){
-    piston_ux[4][n] = -piston_ux[4][n];
-  }
+
 }
 
 
 double Wave_VeloX(double x, double y, double z, double t){
   int piston_number = 0;
-  piston_number = (int) floor(y/piston_width);
-  return piston_ux[piston_number][(int) floor(t*file_samplerate)];
-  
+  piston_number = (int) clamp((y/piston_width),0,(double)n_pistons-1);
+  int t0_i = (int)floor(t*file_samplerate);
+  return piston_ux[piston_number][t0_i] + (piston_ux[piston_number][t0_i+1]-piston_ux[piston_number][t0_i])*(t*file_samplerate-t0_i);
 }
 
 event init (i = 0)
@@ -125,9 +126,10 @@ int main(int argc, char *argv[])
       nl = atoi(argv[j + 1]); 
     }
   }
-  #if _MPI
-  dimensions(3);
-  #endif
+  
+  dimensions(nx=1, ny=1, nz=1); //change to set non cubic domain
+  //number of threads has to be n*nx*ny*nz
+  
   //make folders for saving the results
   sprintf(results_folder, "results/run%d/LEVEL%d_layers%d", run_number, LEVEL, nl);
   sprintf(vts_folder, "%s/vts", results_folder);
@@ -164,36 +166,34 @@ int main(int argc, char *argv[])
   //DT = 0.01;
   //theta_H = 0.51;
   #if _OPENMP
-  if (set_n_threads>0)
-  {
-  int num_omp = omp_get_max_threads();
-  fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
-  omp_set_num_threads(set_n_threads);   
-  fprintf(stderr, "set openmp threads:%d\n", 4);
+  if (set_n_threads>0){
+    int num_omp = omp_get_max_threads();
+    fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
+    omp_set_num_threads(set_n_threads);   
+    fprintf(stderr, "set openmp threads:%d\n", 4);
   }
   #elif _MPI
   fprintf(stderr, "npe:%d\n", npe());
   #endif
-
   run();
 }
 
 #if _OPENMP
-event output_field (t <= Tend; t += .1)
-{
+event output_field (t <= Tend; t += .1){
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
     static int j;
     char name[100];
     sprintf(name, "%s/field_%.6i.vts",vts_folder, j++);
     fprintf(stdout, "written to: %s\n", name);
     FILE* fp = fopen(name, "w");
-    output_vts_ascii_all_layers(fp, {eta,h,u}, N);
+    output_vts_ascii_all_layers(fp, {eta}, N);
     fclose(fp);
     #if _OPENMP
     omp_set_num_threads(set_n_threads);
     #endif
 }
 #endif
+
 /**
 event movie (t += 1./25., t <= Tend)
 {

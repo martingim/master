@@ -2,28 +2,39 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import fft
-filename = '2d_piston/boundary-piston/piston_files/1/fil3.dat'
+## fft of piston file
+# filename = '2d_piston/boundary-piston/piston_files/1/fil3.dat'
+# real_fft = np.fft.rfft(position_data)
+# real_fft[500:] = 0
+# fft_smoothed = np.fft.irfft(real_fft)
+# data = np.loadtxt(filename)
+# if len(data)%2:
+#     data = data[:-1]
+# position_data = (data-np.mean(data))*0.01
+
+number_of_pistons = 14
 speed_file = 'piston_speed.dat'
 position_file = 'piston_position.dat'
 file_samplerate = 100
-f = 1.425
-wave_time = 1/f*5
 end_time = 20
-data = np.loadtxt(filename)
-if len(data)%2:
-    data = data[:-1]
-position_data = (data-np.mean(data))*0.01
-real_fft = np.fft.rfft(position_data)
-real_fft[500:] = 0
-fft_smoothed = np.fft.irfft(real_fft)
+
+f = 1.425
+wave_time = 1/f*5 #how many amplitudes to generate
+piston_amplitude = 0.0125
+piston_phase_offset = 0.1 # how much the pistons lag behind each other
 
 
-t = np.linspace(0,wave_time, int(wave_time*100+1))
-generated_position = 0.0125*np.sin(t*f*2*np.pi)*np.tanh(t)*np.tanh(wave_time-t)
-t = np.linspace(0, end_time, end_time*file_samplerate+1)
-generated_position = np.concatenate((generated_position, np.zeros(len(t)+len(generated_position))))
+generated_position = np.zeros((end_time*file_samplerate,number_of_pistons))
+t = np.linspace(0,wave_time, int(wave_time*100)+1)
 
-np.savetxt(speed_file, np.gradient(generated_position)*file_samplerate, fmt='%.8f')
+offset = 0
+
+for i in range(number_of_pistons):
+    generated_position[int(offset*file_samplerate):len(t)+int(offset*file_samplerate),i] = piston_amplitude*np.sin((t)*f*2*np.pi)*np.tanh(t)*np.tanh(wave_time-t)
+    offset += piston_phase_offset
+
+
+np.savetxt(speed_file, np.gradient(generated_position, axis=0)*file_samplerate, fmt='%.8f')
 np.savetxt(position_file, generated_position, fmt='%.8f')
 
 

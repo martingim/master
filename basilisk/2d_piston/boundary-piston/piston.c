@@ -3,7 +3,7 @@
  * reads piston position data from file.
  * Thank you to Oystein Lande for how to implement the boundary conditions
  */
-
+#include <stdint.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <string.h>
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
   if (system(copy_script)==0){
     printf("copied script to results folder\n");
   }
-  
+    
   read_piston_data();
   L0 = l;
   //f.sigma = 0.078;
@@ -257,7 +257,6 @@ event vtu(t+=0.1, last){
   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
 }
 
-
 event save_energy(t+=0.01)
 {
   printf("saving energy\n");
@@ -273,10 +272,9 @@ event save_energy(t+=0.01)
     gpe += (y+_h/2)*f[]*dv();
   }
   if (i == 0)
-    fprintf (fp, "ke, gpe, t\n");
-  fprintf(fp, "%f, %f, %f\n", rho1*ke/2., rho1*g_*gpe, t);
+    fprintf (fp, "t, ke, gpe\n");
+  fprintf(fp, "%f, %f, %f\n", t, rho1*ke/2., rho1*g_*gpe);
 }
-
 
 /*
 simulation stopped at Tend

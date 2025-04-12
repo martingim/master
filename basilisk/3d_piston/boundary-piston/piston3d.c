@@ -30,8 +30,8 @@ int run_number = 1; //default run number if none is given in the command line pi
 
 #define n_pistons 14//number of pistons
 #define _h 0.5//water depth
-double l = 7; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
-double domain_length = 7;
+double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double domain_length = 14;
 double domain_width = 7; //the width of the simulation domain
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.2;

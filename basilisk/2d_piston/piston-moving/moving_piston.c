@@ -19,7 +19,7 @@
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 6; //0 to use all available threads for OPENMP
+int set_n_threads = 2; //0 to use all available threads for OPENMP
 int LEVEL = 4;
 int max_LEVEL = 11; //Default level if none is given as command line argument
 int padding = 2;
@@ -27,6 +27,7 @@ int EXTRA_PISTON_LEVEL = 0; //extra refinement around the piston to make it leak
 
 #define _h 0.6//water depth
 double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double g_ = 9.81;
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.2;
 double uemax = 0.2;
@@ -51,15 +52,12 @@ int file_samplerate = 100; //the samplerate of the piston position file
 int piston_counter;
 double piston_positions[piston_timesteps];
 double piston_ux[piston_timesteps];
-double piston_position = 0;
-double U_X = 0.; //the speed of the piston
 //piston parameters 
 #define piston_back_wall_offset .1 //the distance from the left of the domain to the front of the piston
 double piston_height = 0.2;   //height of the piston above the still water level
 double piston_bottom_clearance = 0.00; //piston distance above bottom
 #define piston_w .2 //width of the piston
-//#define PISTON (1 -(piston_position<x) - (x<(piston_position-piston_w))-(y>piston_height)) //subtract conditions outside the piston
-#define PISTON piston_position-x
+#define PISTON Piston_Pos_x(x, y, z, t)-x
 scalar pstn[];
 
 void read_piston_data(){
@@ -84,7 +82,7 @@ void read_piston_data(){
   file = fopen(piston_speed_file, "r");
   if(!file)
     {
-        perror("Error opening piston position file");
+        perror("Error opening piston speed file");
     }
   _running=1;
   while(_running && count< piston_timesteps ){
@@ -96,8 +94,17 @@ void read_piston_data(){
   for (int i=count;i<piston_timesteps;i++){
     piston_ux[i] = 0;
   }
-  
+}
 
+double Piston_Velo_x(double x , double y, double z, double t){
+  int t0_i = (int)floor(t*file_samplerate);
+  //linear interpolation of the piston speed f(t) = f(t0) +(f(t1)-f(t0))*(t-t0)/(t1-t0)
+  return piston_ux[t0_i] + (piston_ux[t0_i+1]-piston_ux[t0_i])*(t*file_samplerate-t0_i);
+}
+
+double Piston_Pos_x(double x, double y, double z, double t){
+  int t0_i = (int)floor(t*file_samplerate);
+  return piston_positions[t0_i] + (piston_positions[t0_i+1]-piston_positions[t0_i])*(t*file_samplerate-t0_i);
 }
 
 event setup_probe_positions(i=0){
@@ -155,7 +162,7 @@ int main(int argc, char *argv[]) {
   }
   
   
-  //copy the script to the results folder for later incpection if needed
+  //copy the script to the results folder for later inspection if needed
   char copy_script[100];
   sprintf(copy_script, "cp moving_piston.c %s/moving_piston.c", results_folder);
   if (system(copy_script)==0){
@@ -176,7 +183,7 @@ int main(int argc, char *argv[]) {
   rho2 = 1.204;
   mu1 = 8.9e-4;
   mu2 = 17.4e-6;
-  G.y = - 9.81;
+  G.y = - g_;
   N = 1 << LEVEL;
   DT = 0.1;
   u.n[bottom] = dirichlet(0.);
@@ -223,9 +230,9 @@ And to minimise the error in the velocity field.
 event adapt (i++){
   // adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL, LEVEL,padding);
   adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
-  unrefine ((x>(piston_position+0.05))&&(level>=max_LEVEL));
-  unrefine ((x < piston_position-piston_w*0.6)); //unrefine the area to the left of the piston
-  unrefine ((y<-0.4)&&(x>(piston_position+0.02))); //unrefine the bottom
+  unrefine ((x>(Piston_Pos_x(x,y,z,t)+0.05))&&(level>=max_LEVEL));
+  unrefine ((x < Piston_Pos_x(x,y,z,t)-piston_w*0.6)); //unrefine the area to the left of the piston
+  unrefine ((y<-0.4)&&(x>(Piston_Pos_x(x,y,z,t)+0.02))); //unrefine the bottom
   unrefine ((y>0.1));
   fraction(pstn, PISTON);
 }
@@ -236,17 +243,12 @@ The moving piston is implemented via Stephane's trick. Note that this
 piston is leaky.
 */
 event piston (i++, first) {
-  piston_counter = floor(t*100);
-  piston_position = piston_positions[piston_counter];
-  
-  U_X = piston_ux[piston_counter];
   fraction (pstn, PISTON);
-  foreach() {
+  foreach(){
     u.y[] = u.y[]*(1 - pstn[]);
-    u.x[] = pstn[]*U_X + u.x[]*(1 - pstn[]);
+    u.x[] = pstn[]*Piston_Velo_x(x, y ,z, t) + u.x[]*(1 - pstn[]);
   }
-  u.n[left]=dirichlet(U_X);
-  //printf("U_X:%f, piston_position:%f\n", U_X, piston_position);
+  u.n[left]=dirichlet(Piston_Velo_x(x,y,z,t));
 }
 
 event surface_probes(t+=0.01){
@@ -290,7 +292,27 @@ event vtu(t+=0.1, last){
   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
 }
 
-
+event save_energy(t+=0.01)
+{
+  printf("saving energy\n");
+  char filename[200];
+  sprintf(filename, "%s/energy.csv", results_folder);
+  static FILE * fp = fopen(filename, "w");
+  double ke = 0., gpe = 0., volume=0.;
+  foreach (reduction(+:ke) reduction(+:gpe) reduction(+:volume)) {
+    double norm2 = 0.;
+    if (x>Piston_Pos_x(x,y,z,t)){
+      foreach_dimension()
+        norm2 += sq(u.x[]);
+      ke += norm2*f[]*dv();
+      gpe += (y+_h/2)*f[]*dv();
+      volume += f[]*dv();
+    }
+  }
+  if (i == 0)
+    fprintf (fp, "t, ke, gpe, f\n");
+  fprintf(fp, "%f, %f, %f, %f\n", t, rho1*ke/2., rho1*g_*gpe, volume);
+}
 // void mvtu(int s){
 //   printf("Saving vtu file\n");
 //   char filename[40];

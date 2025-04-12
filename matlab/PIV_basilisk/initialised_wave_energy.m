@@ -3,7 +3,7 @@ close all;
 close all;
 energy_files = [];
 legends = [];
-energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL9/energy.txt"]; legends = [legends; "test case"];
+energy_files = [energy_files; "~/Documents/master/basilisk/2d_piston/piston-moving/results/LEVEL11_0/energy.csv"]; legends = [legends; "moving piston level 11"];
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL7_layers40/energy_nx128_nl40.csv"]; legends = [legends; "nx:128, l:40s, 377s"];
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL7_nwaves1/energy.txt"]; legends = [legends; "nx 128 dt=0.01"];
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/NS-adaptive/results/LEVEL8_nwaves1/energy.txt"]; legends = [legends; "nx 256 dt=0.005"];
@@ -35,7 +35,7 @@ plot(t, (ke+gpe)*100/ke0/2, 'DisplayName', sprintf('Total energy/2'));
 title('NS-Solver change in energy');
 ylabel('% change in energy');
 legend();
-xlim([0,25]);
+%xlim([0,25]);
 fontsize(20, "points")
 %print('~/Documents/master/movies_and_figures/initialised_NS_energy', '-dpng')
 
@@ -66,6 +66,8 @@ close all;
 
 energy_files = [];
 legends = [];
+energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL7_layers10/energy_nx128_nl10.csv"]; legends = [legends; "10 layers, nx 128"];
+
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL7_layers8/energy_nx128_nl8.csv"]; legends = [legends; "8 layers, nx 128"];
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL8_layers15/energy_nx256_nl15.csv"]; legends = [legends; "15 layers, nx 256"];
 energy_files = [energy_files; "~/Documents/master/basilisk/initialised_wave/multilayer/results/LEVEL9_layers30/energy_nx512_nl30.csv"]; legends = [legends; "30 layers, nx 512"];
@@ -77,7 +79,7 @@ figure;
 hold on;
 title("percentage change in Energy compared to k")
 xlabel("t [s]")
-run = 3;
+run = 1;
 energy = readtable(energy_files(run));
 energy = table2array(energy);
 ke0 = energy(1,2);

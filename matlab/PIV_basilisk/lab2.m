@@ -21,7 +21,7 @@ for run_number=1:n_runs
     for wave=1:n_waves
         disp("run:" + run_number + " | wave:" + wave)
         if force_PIV
-            perform_PIV(run_number, wave, image_params); %#ok<UNRCH>
+            perform_PIV(run_number, wave, image_params);
         else
             try
                 load("velocities.mat")
@@ -42,7 +42,8 @@ for run_number=1:n_runs
     surface_height(run_number, image_params);
 end
 close all
-
+%%
+surface_height(4, image_params)
 
 %% Quiver plot
 run_number = 8;

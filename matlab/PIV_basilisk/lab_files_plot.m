@@ -125,24 +125,31 @@ titles = [];
 basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run7/LEVEL10/"]; titles = [titles "NS LEVEL 10"];
 basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run7/LEVEL11/"]; titles = [titles "NS LEVEL 11"];
 
-%% run number 1
-lab_run_number = 1;
+%% run number 4
+lab_run_number = 5;
 basilisk_folders = [];
 titles = [];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run1/LEVEL10/"]; titles = [titles "NS LEVEL 10"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/piston-moving/results/run1/LEVEL11_0/"]; titles = [titles "moving piston LEVEL 11"];
-basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/piston-moving/results/run1/LEVEL12_0/"]; titles = [titles "moving piston LEVEL 12"];
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run4/LEVEL10/"]; titles = [titles "NS LEVEL 10"];
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run4/LEVEL11/"]; titles = [titles "NS LEVEL 11"];
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run4/LEVEL12/"]; titles = [titles "NS LEVEL 12"];
 
 %basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/boundary-piston/results/run3/LEVEL10/"]; titles = [titles "NS LEVEL 10"];
+%% run number 3
+lab_run_number = 3;
+basilisk_folders = [];
+titles = [];
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/piston-moving/results/run1/LEVEL11_2/"]; titles = [titles "LEVEL 11 extra piston 2"];
+basilisk_folders = [basilisk_folders "~/Documents/master/basilisk/2d_piston/piston-moving/results/run1/LEVEL12_0/"]; titles = [titles "LEVEL 12 extra piston 0"];
 
 %% plot sensor 1 for different basilisk runs in different plots
-sensor = 2;
+sensor = 1;
 file = load(append(lab_folder, lab_surface_probes(lab_run_number)));
 t = 0.008:0.008:size(file, 1)/125;
 
 figure;
 tiledlayout(size(basilisk_folders, 2),1)
-
+xmin = 1;
+xmax = 9;
 for i=1:size(basilisk_folders, 2)
     basilisk_folder = basilisk_folders(i);
     titl = titles(i);
@@ -162,7 +169,7 @@ for i=1:size(basilisk_folders, 2)
     legend()
     xlabel('t[s]')
     ylabel('surface eleveation[m]')
-    xlim([22 28])
+    xlim([xmin xmax])
     %mark the period
     %plot(0:T:60,0, 'x')
 end
@@ -187,7 +194,8 @@ for i=1:size(basilisk_folders, 2)
     %plot the basilisk results
     
     % surface_probes = load(append(basilisk_folder, "surface_probes.csv"));
-    surface_probes = readtable(append(basilisk_folder, "surface_probes.csv"));
+    surface_probes = readtable(append(basilisk_folder, "surface_probes.csv"), 'ReadVariableNames',true, 'VariableNamingRule','preserve');
+    probe_locations = str2double(surface_probes.Properties.VariableNames);
     surface_probes = table2array(surface_probes);
     plot(surface_probes(:,1), surface_probes(:,basilisk_probe_number),'DisplayName',titles(i));
     xlabel('t[s]')
@@ -197,7 +205,7 @@ for i=1:size(basilisk_folders, 2)
     %plot(0:T:60,0, 'x')
 end
 legend();
-title(sprintf("surface elevation for sensor %d", sensor))
+title(sprintf("surface elevation, sensor %.2fm from piston at rest", probe_locations(basilisk_probe_number)))
 
 
 %% plot all the sensors for one run

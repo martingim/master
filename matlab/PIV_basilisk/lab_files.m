@@ -27,17 +27,19 @@ lab_surface_probes = ["f1425_a308_r1.csv";
 
 
 %% plot the piston movements
+close all;
 figure;
 hold on
 for lab_folder_number = 1:size(lab_surface_probes, 1)
     run_folder = sprintf("%s%d/" , lab_folder, lab_folder_number);
     load(append(run_folder, "fil1.dat"));
     fil = fil1;
-    t = 0.008:0.01:size(fil1, 1)/100;
+    t = 0.000:0.01:(size(fil1, 1)-1)/100;
     plot(t, fil-fil(1,1), DisplayName=sprintf("%d", lab_folder_number))
     legend()
 end
-
+plot(t, -0.308*sin((t-0.08)*2*pi*1.425).*tanh((t-0.0)))
+xlim([0 3])
 %% Plot surface probes
 
 for sensor=1:4

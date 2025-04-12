@@ -348,7 +348,7 @@ void output_vts_ascii_single_layer(FILE* fp, scalar* list, int layerid, bool dis
 }
 
 
-void output_vts_ascii_all_layers(FILE* fp, scalar* list, int N)
+void output_vts_ascii_all_layers(FILE* fp, scalar* list, int Nx, int Ny=0)
 {
   int nthreads_ = omp_get_max_threads();
   omp_set_num_threads(1);
@@ -358,13 +358,13 @@ void output_vts_ascii_all_layers(FILE* fp, scalar* list, int N)
   fputs("<?xml version=\"1.0\"?>\n<VTKFile type=\"StructuredGrid\" version=\"1.0\" byte_order=\"LittleEndian\" header_type=\"UInt64\">\n", fp);
 
   #if dimension == 1
-    fprintf(fp, "\t <StructuredGrid WholeExtent=\"%d %d %d %d 0 0\">\n", 0, N, 0, nl);
-    fprintf(fp, "\t\t <Piece Extent=\"%d %d %d %d  0 0\">\n", 0, N, 0, nl);
+    fprintf(fp, "\t <StructuredGrid WholeExtent=\"%d %d %d %d 0 0\">\n", 0, Nx, 0, nl);
+    fprintf(fp, "\t\t <Piece Extent=\"%d %d %d %d  0 0\">\n", 0, Nx, 0, nl);
   #endif
 
   #if dimension == 2
-    fprintf(fp, "\t <StructuredGrid WholeExtent=\"%d %d %d %d %d %d\">\n", 0, N, 0, N, 0, nl);
-    fprintf(fp, "\t\t <Piece Extent=\"%d %d %d %d %d %d\">\n", 0, N, 0, N, 0, nl);
+    fprintf(fp, "\t <StructuredGrid WholeExtent=\"%d %d %d %d %d %d\">\n", 0, Ny, 0, Nx, 0, nl);
+    fprintf(fp, "\t\t <Piece Extent=\"%d %d %d %d %d %d\">\n", 0, Ny, 0, Nx, 0, nl);
   #endif
 
   // Loop over velocity data and store kinematics in cell vector stucture
@@ -436,7 +436,7 @@ void output_vts_ascii_all_layers(FILE* fp, scalar* list, int N)
     fputs("\t\t\t <Points>\n", fp);
 #if dimension == 1
   fputs("\t\t\t\t <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">\n", fp);
-  double* zcorr = (double *)malloc((N+1)*sizeof(double));
+  double* zcorr = (double *)malloc((Nx+1)*sizeof(double));
   // for (int j = 0; j <= N; j++){
   //   zcorr[j] = eta[j,0,0];
   // }
@@ -474,7 +474,7 @@ void output_vts_ascii_all_layers(FILE* fp, scalar* list, int N)
   fputs("\t\t\t\t <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">\n", fp);
   double** zcorr = (double**)malloc(nl*sizeof(double*));
   int j = 0;
-  zcorr[0] = (double *)malloc((N+1)*(N+1)*sizeof(double));
+  zcorr[0] = (double *)malloc((Ny+1)*(Nx+1)*sizeof(double));
   foreach_vertex(serial){
       if (IN_DOMAIN){
         zcorr[0][j] = zb[] + h[0,0,0];
@@ -485,7 +485,7 @@ void output_vts_ascii_all_layers(FILE* fp, scalar* list, int N)
     }
     j = 0;
   for (int i = 1; i < nl; i++) {
-    zcorr[i] = (double *)malloc((N+1)*(N+1)*sizeof(double));
+    zcorr[i] = (double *)malloc((Ny+1)*(Nx+1)*sizeof(double));
     foreach_vertex(serial){
       if (IN_DOMAIN){
         zcorr[i][j] = zcorr[i-1][j] + h[0,0,i];

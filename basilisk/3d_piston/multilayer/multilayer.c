@@ -13,23 +13,24 @@ the parameters for the wave are from
 #include "layered/remap.h"
 #include "layered/check_eta.h"
 #include "layered/perfs.h"
-
+//#include "output_vts_multilayer.h"
 #include "view.h"
 #if _OPENMP
 #include "output_pvd.h"
 #endif
 //#include "display.h"
 double Tend = 20;    //the end time of the simulation
-double Lx = 7; //The length of the simulation domain
+double Lx =14; //The length of the simulation domain
+#define nx_  2 //the aspect ratio of the domain 
 double g = 9.81;
 int LEVEL = 8;      //the grid resolution in x direction Nx = 2**LEVEL
 double h_ = 0.6;                   
 char save_location[] = "./";
 
-int set_n_threads = 2; //set number of threads manually
-#define nl_ 10  //the default number of layers if none are given as command line arguments
+int set_n_threads = 4; //set number of threads manually must be n*nx
+#define nl_ 4  //the default number of layers if none are given as command line arguments
 #define rmin sqrt(Lx*nl/N/h_)
-#define g_ g
+#define g_ g 
 
 double t_dim = 1;
 
@@ -106,7 +107,7 @@ event init (i = 0)
   # define neumann_pressure_variable(i) (((Wave_VeloX(x, y, z, t+dt)-Wave_VeloX(x, y, z, t))/dt))
   u.n[left] = dirichlet(Wave_VeloX(x,y,z,t));
   phi[left] = neumann(neumann_pressure_variable(0));
-  
+  u.n[top] = dirichlet(0);  
 }
 int main(int argc, char *argv[])
   {
@@ -127,8 +128,6 @@ int main(int argc, char *argv[])
     }
   }
   
-  dimensions(nx=1, ny=1, nz=1); //change to set non cubic domain
-  //number of threads has to be n*nx*ny*nz
   
   //make folders for saving the results
   sprintf(results_folder, "results/run%d/LEVEL%d_layers%d", run_number, LEVEL, nl);
@@ -159,6 +158,10 @@ int main(int argc, char *argv[])
 
   N = 1<<LEVEL;
   L0 = Lx;
+  size(Lx);
+  dimensions(nx=nx_, ny=1); //change to set non cubic domain
+  //number of threads has to be n*nx*ny*nz
+  
   G = g;
   breaking = 0.1;
   CFL_H = .5;
@@ -170,7 +173,7 @@ int main(int argc, char *argv[])
     int num_omp = omp_get_max_threads();
     fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
     omp_set_num_threads(set_n_threads);   
-    fprintf(stderr, "set openmp threads:%d\n", 4);
+    fprintf(stderr, "set openmp threads:%d\n", set_n_threads);
   }
   #elif _MPI
   fprintf(stderr, "npe:%d\n", npe());
@@ -180,20 +183,31 @@ int main(int argc, char *argv[])
 
 #if _OPENMP
 event output_field (t <= Tend; t += .1){
+    omp_set_num_threads(1);
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
     static int j;
     char name[100];
-    sprintf(name, "%s/field_%.6i.vts",vts_folder, j++);
+    sprintf(name, "%s/field_%.6i.vts", vts_folder, j++);
     fprintf(stdout, "written to: %s\n", name);
     FILE* fp = fopen(name, "w");
-    output_vts_ascii_all_layers(fp, {eta}, N);
+    printf("nx:%d, Nx:%d\n", nx_, (int)N/nx_);
+    output_vts_ascii_all_layers(fp, {eta}, N, (int) (N/nx_));
     fclose(fp);
     #if _OPENMP
     omp_set_num_threads(set_n_threads);
     #endif
 }
 #endif
-
+// event output_field_n (t <= Tend; t += .1){
+//   fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
+//   static int j;
+//   char name[100];
+//   sprintf(name, "%s/field_%.6i.vts",vts_folder, j++);
+//   fprintf(stdout, "written to: %s\n", name);
+//   FILE* fp = fopen(name, "w");
+//   output_vts_bin_all_layers_multivar({eta}, fp);
+//   fclose(fp);
+// }
 /**
 event movie (t += 1./25., t <= Tend)
 {

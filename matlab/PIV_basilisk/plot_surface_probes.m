@@ -27,6 +27,7 @@ lab_surface_probes = ["f1425_a308_r1.csv";
 
 %%
 %% plot sensor 1 for different basilisk runs in different plots
+close all
 probe_positions = [8 10.05 10.75 11.50;
                    1.5 10.05 10.75 11.50];
 %values to start the plots and stokes 5th order fit from
@@ -86,6 +87,10 @@ for sensor = sensors
         %plot(t_(LMin), surface_probe(LMin), 'x', 'DisplayName','Trough location')
         (2*a)*Result.k;
         legend('Location','southeast')
+        [Zhao_crest_height temp]= StokesEta(Result.k, h, Result.a, 0);
+        [Fenton_crest_height temp]=FentonEta(FentonResult.k, h, FentonResult.a, 0);
+        disp(sprintf("run %d difference in surface height at the crest between Fenont and Zhao:%.2f%%", lab_run_number, (Zhao_crest_height-Fenton_crest_height)/Fenton_crest_height*100));
     end
     print(sprintf('~/Documents/master/movies_and_figures/surface_measured_vs_analytical_sensor%d', sensor), '-dpng')
+    
 end

@@ -34,10 +34,10 @@ double probe_positions[] = {0.00001};
 The wave number, fluid depth and acceleration of gravity are set to
 these values. *T0* is simulation duration */
 
-#define k_  7.9583
-#define h_   0.6
-#define g_   9.81
-#define T0  10
+double k_  = 7.9583;
+double h_  = 0.6;
+double g_  =  9.81;
+double T0  = 10;
 
 /**
 The program takes an optional argument which is the level of

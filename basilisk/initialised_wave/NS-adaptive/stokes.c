@@ -43,10 +43,9 @@ double uemax = 0.1;
 The wave number, fluid depth and acceleration of gravity are set to
 these values. *T0* is simulation duration */
 
-#define k_  7.9583
-#define h_   0.6
-#define g_   9.81
-
+double k_  = 7.9583;
+double h_  = 0.6;
+double g_  =  9.81;
 /**
 The program takes optional argument LEVEL 
 */

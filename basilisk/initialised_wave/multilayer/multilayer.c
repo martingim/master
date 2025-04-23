@@ -26,17 +26,17 @@ int LEVEL = 7;      //the grid resolution in x direction Nx = 2**LEVEL
 double rho = 997;
 double k_ = 7.9596;    //the wavenumber
 double a = 0.0205;    //the amplitude of the wave
+double ak = 7.9596*0.0205;
 double h_ = 0.6;      //water depth
+double g_ = 9.81;
 
 int n_waves = 1;      //number of waves to fit the domain to 
 #define Lx 2*pi/k_*n_waves  // the length of the simulation domain
-#define ak a*k_  //wave steepness
                     
 char results_folder[40]; //the location to save the results
 char vts_folder[50]; //the locaton to save the vtu files
 char guage_name[50];
 
-#define g_ 9.81
 #include "test/stokes.h" //third order stokes wave
 
 

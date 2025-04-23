@@ -46,9 +46,9 @@ The density and viscosity ratios are those of air and water. */
 The wave number, fluid depth and acceleration of gravity are set to
 these values. *T0* is the wave period. */
 
-#define k_  k
-#define h_   0.6
-#define g_   9.81
+double k_  = 7.9583;
+double h_  = 0.6;
+double g_  =  9.81;
 #define T0  0.7115297011824904
 
 

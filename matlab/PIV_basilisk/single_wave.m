@@ -81,15 +81,16 @@ perform_PIV(run_number,1,image_params);
 load params.mat params
 p = params(run_number);
 p('a') = a;
-p('std_a') = 0.001;
+p('std_a') = 0.0005;
 p('water_depth') = water_depth;
 params(run_number) = p;
 save('params.mat', 'params')
 
 %% plot velocity under crest
 % timestep = 1;
-
+close all
 plot_velocity_under_crest(run_number,1,image_params);
+print('~/Documents/master/movies_and_figures/PIV_horizontal_velocity_under_crest', '-dpng')
 %%
 %compare with basilisk results
 % MOVING PISTON

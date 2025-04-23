@@ -32,7 +32,7 @@ double g_ = 9.81;
 double femax = 0.01;
 double uemax = 0.01;
 double pemax = .01;
-double Tend = 25.;
+double Tend = 40.;
 
 char results_folder[40]; //the location to save the results
 char vtu_folder[50]; //the locaton to save the vtu files
@@ -120,13 +120,17 @@ int main(int argc, char *argv[]) {
   //set max_LEVEL and run number from command line args
   for(int j=0;j<argc;j++){
     if (strcmp(argv[j], "-L") == 0) //check for command line flag
-        {                 
-            max_LEVEL = atoi(argv[j + 1]);
-        }
+      {                 
+          max_LEVEL = atoi(argv[j + 1]);
+      }
     if (strcmp(argv[j], "-r") == 0)
-        {                 
-            run_number = atoi(argv[j + 1]);
-        }  
+      {                 
+          run_number = atoi(argv[j + 1]);
+      }  
+    if (strcmp(argv[j], "--nthreads") == 0)
+      {                 
+          set_n_threads = atoi(argv[j + 1]);
+      }  
   }
 
   //make folders for saving the results

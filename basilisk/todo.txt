@@ -1,13 +1,17 @@
 introduction
     initialised stokes wave with periodic boundaries
+        check the same with much smaller wave
+        Check the effect of changing DT
         multilayer and NS
             check stability and the evolution of the simulation
 
 2d 
+    check energy decay for short timeseries piston movement
     compare multilayer vs NS vs NS_stephane_trick
+        check ml difference with nh.h
         compare with probe at 1.5m and 10m
         compare vertical velocity profile with theory and PIV
-    run a 2d focusing wave
+
 
 3d 
     One large piston to compare with 2d results
@@ -20,26 +24,17 @@ introduction
             if we can get close to 3 times steeper than 2d
 
 
-
-
-multlayer solver with boundary conditions from piston file
-multilayer large wavetank
-multilayer large wavetank multiple paddles
-
-
-check surface probes for all runs 
-
-change dimensions to 7x7    
-
-
-* test one large piston multilayer vs ns time and surface elevation
-* compare one piston scalar field to 14
-* change the piston to use only one field
+*test one large piston multilayer vs ns time and surface elevation
 
 *compare boundary piston to stephane trick for normal and higher amplitude
 
 *check if ditching adapt and only setting initial refinement is faster/better
 
+*test results without conserving.h
 
 *check the different piston implementations for simulation speed (both stephane and boundary)
-    one piston field changed when setting every piston speed and position
+
+
+RESULTS
+    piston position files argumentation for using fil3.dat and change the factor to m i matlab
+

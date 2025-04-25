@@ -11,6 +11,7 @@ from scipy import fft
 # to run in all subdirs where fil1.dat is present
 function_fit = 0
 fft_lowpass = 1
+cutoff_frequency = 8
 savgol_fit = 0
 fil3 = True # use fil3 instead of the volt reading from the piston
 window_length = 20
@@ -90,9 +91,10 @@ for filename in filenames:
 
     ##fft
     real_fft = np.fft.rfft(position)
-    real_fft[500:] = 0
+    frequencies = np.fft.rfftfreq(position.size, d=1/file_samplerate)
+    cutoff_idx = abs(frequencies-cutoff_frequency).argmin()
+    real_fft[cutoff_idx:] = 0
     fft_smoothed = np.fft.irfft(real_fft)
-
     print(f"saving results in: {filename[:-8]}")    
 
     speed_file = filename[:-8]+'piston_speed.dat'

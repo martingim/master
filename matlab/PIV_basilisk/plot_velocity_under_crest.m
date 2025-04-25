@@ -57,6 +57,8 @@ end
 % u_crest = mean(u_crest, 2);
 % u_crest = u_crest(idx(:,crest_idx)&idx(:,crest_idx-1)&idx(:,crest_idx+1));
 % crest_mask = idx(:,crest_idx)&idx(:,crest_idx-1)&idx(:,crest_idx+1);
+
+% %use only one column
 u_crest = Uw(:,crest_idx);
 u_crest = u_crest(idx(:,crest_idx)&true);
 crest_mask = idx(:,crest_idx)&true;
@@ -110,10 +112,10 @@ plot(abs(u_crest_scaled), y_scaled, 'x','color', 'black', "DisplayName","PIV exp
 
 legend('Location','southeast')
 title(sprintf('Horizontal velocity under the crest'))
-
-xlabel('$\frac{v}{a\omega}$', 'interpreter', 'latex', 'FontSize', 20)
-ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 20, 'rotation', 0)
 fontsize(20, "points")
+xlabel('$\frac{u}{a\omega}$', 'interpreter', 'latex', 'FontSize', 40)
+ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 40, 'rotation', 0)
+
 %% plot Stokes 5th order
 
     

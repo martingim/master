@@ -8,8 +8,11 @@ run_number = 16;
 %parameters from the article
 a = 0.0205;     %measured amplitude of the wave
 omega = 8.95;   %frequency of the waves
-k = 7.95;       %wavenumber
+
 h = 0.6;        %the water level in the tank
+a = 0.0205;
+res = StokesDispSolver('h', 0.6, 'H', a*2, 'T', 1/1.425, 'mode', 1);
+k = res.k;
 water_depth = zeros(16,1);
 frequency = zeros(16,1);
 time_between_frames = zeros(16,1);
@@ -81,14 +84,15 @@ perform_PIV(run_number,1,image_params);
 load params.mat params
 p = params(run_number);
 p('a') = a;
-p('std_a') = 0.0005;
+p('k') = k;
+p('std_a') = 2e-4;
 p('water_depth') = water_depth;
 params(run_number) = p;
 save('params.mat', 'params')
 
 %% plot velocity under crest
 % timestep = 1;
-close all
+
 plot_velocity_under_crest(run_number,1,image_params);
 print('~/Documents/master/movies_and_figures/PIV_horizontal_velocity_under_crest', '-dpng')
 %%
@@ -107,11 +111,17 @@ basilisk_moving_piston_velocity_profile(timestep, 0.02, omega, h)
 %% plot alpha
 
 plot_alpha(run_number, 1, image_params, true);
-timestep=0;
-basilisk_moving_piston_alpha(timestep, 0.0244, k, omega, h)
+close all
+% print('~/Documents/master/movies_and_figures/PIV_alpha_plot', '-dpng')
 
-timestep=1;
-basilisk_moving_piston_alpha(timestep, 0.025, k, omega, h)
+quiver_plot(run_number, 1, 40);
+xlim([-0.12 0.11])
+print('~/Documents/master/movies_and_figures/PIV_quiver_plot', '-dpng')
+% timestep=0;
+% basilisk_moving_piston_alpha(timestep, 0.0244, k, omega, h)
+% 
+% timestep=1;
+% basilisk_moving_piston_alpha(timestep, 0.025, k, omega, h)
 
 %compare with basilisk results
 % timestep = 0;

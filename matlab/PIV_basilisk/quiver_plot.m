@@ -1,7 +1,7 @@
 function [] = quiver_plot(run_number, pair_number, max_arrows)
 
 
-scale = 3; %for the arrows in the quiver plots
+scale = 2; %for the arrows in the quiver plots
 
 %% load data and parameters
 load('velocities.mat')
@@ -53,21 +53,21 @@ quiver_idx = logical(quiver_idx.*idx);
 %% Quiver plots
 
 %World
-figure;
+figure('Position', [1000, 818,1000,800]);
 hold on;
 quiver(xw(quiver_idx),yw(quiver_idx),Uw(quiver_idx),Vw(quiver_idx), scale);
 legend('velocity')
-title('world')
+title('PIV velocity')
 xlabel('x[m]')
 ylabel('y[m]')
-hold off;
-
-%Analytical
-figure;
-quiver(xw(quiver_idx), yw(quiver_idx), u(xw(quiver_idx), yw(quiver_idx)), v(xw(quiver_idx), yw(quiver_idx)), scale)
-title('analyctical')
-xlabel('x[m]')
-ylabel('y[m]')
+fontsize(20, "points")
+% 
+% %Analytical
+% figure;
+% quiver(xw(quiver_idx), yw(quiver_idx), u(xw(quiver_idx), yw(quiver_idx)), v(xw(quiver_idx), yw(quiver_idx)), scale)
+% title('analyctical')
+% xlabel('x[m]')
+% ylabel('y[m]')
 
 
 

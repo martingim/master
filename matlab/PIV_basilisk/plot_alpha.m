@@ -70,11 +70,13 @@ if create_plot
     hold on
     plot(alpha, y_at_crest, 'x')
     plot(alpha_stokes_5th, z/h)
-    plot(alpha_stokes_3rd, z/h)
-    legend('measured', 'Stokes 5th order', 'Stokes 3rd order')
-    title('horizontal mean of Alpha over the domain')
-    xlabel('$\alpha=\frac{\omega}{agk}(u^2+v^2)^{\frac{1}{2}}$', 'interpreter', 'latex', 'FontSize', 20)
-    ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 20, 'rotation', 0)
+    % plot(alpha_stokes_3rd, z/h)
+    legend('measured', 'Zhao 5th order', Location='southeast')
+    title('horizontal mean over the domain of magnitude of velocity')
+    fontsize(20, "points")
+    xlabel('$\alpha=\frac{\omega}{agk}(u^2+v^2)^{\frac{1}{2}}$', 'interpreter', 'latex', 'FontSize', 40)
+    ylabel('$\frac{y}{h}$', 'interpreter', 'latex', 'FontSize', 40, 'rotation', 0)
+    ylim([-0.25 a*2])
 end
 
 end

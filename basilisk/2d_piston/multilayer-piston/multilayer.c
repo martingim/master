@@ -82,9 +82,12 @@ event setup_probe_positions(i=0){
 }
 
 
-double Wave_VeloX(double x, double y, double z, double t){
-  return piston_ux[(int)floor(t*file_samplerate)];
+double Wave_VeloX(double x , double y, double z, double t){
+  int t0_i = (int)floor(t*file_samplerate);
+  //linear interpolation of the piston speed f(t) = f(t0) +(f(t1)-f(t0))*(t-t0)/(t1-t0)
+  return piston_ux[t0_i] + (piston_ux[t0_i+1]-piston_ux[t0_i])*(t*file_samplerate-t0_i);
 }
+
 
 // double neumann_pressure_function(double t){
 //   return neumann_pressure[(int) floor(t*file_samplerate)];

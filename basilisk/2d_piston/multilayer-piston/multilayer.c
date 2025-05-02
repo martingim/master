@@ -18,12 +18,12 @@ the parameters for the wave are from
 
 //#include "display.h"
 
-int set_n_threads = 2; //set number of threads manually
-int LEVEL = 9;      //the grid resolution in x direction Nx = 2**LEVEL
+int set_n_threads = 8; //set number of threads manually
+int LEVEL = 11;      //the grid resolution in x direction Nx = 2**LEVEL
 
-double Tend = 25;    //the end time of the simulation
+double Tend = 50;    //the end time of the simulation
 // double Lx = 24.6; //The length of the simulation domain
-double Lx = 14;
+double Lx = 24.6;
 #define nl_ 10  //the default number of layers if none are given as command line arguments
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
                     //a regular distribution. the rest fo the layers follow a geometric distribution.
@@ -108,19 +108,11 @@ event init (i = 0)
     }
   }
 
-  //# define neumann_pressure_variable(i) ((neumann_pressure_function(t)))
-  # define neumann_pressure_variable(i) (((Wave_VeloX(0, 0, 0, t+dt)-Wave_VeloX(0, 0, 0, t))/dt))
+  # define neumann_pressure_variable(t) (((Wave_VeloX(0, 0, 0, t+dt)-Wave_VeloX(0, 0, 0, t))/dt))
   u.n[left] = dirichlet(Wave_VeloX(0,0,0,t));
-  phi[left] = neumann(neumann_pressure_variable(0));
-  
-  
-  // foreach() {
-  //  zb[] = -h_;
-  //  foreach_layer(){
-  //    h[] = h_/nl;
-  //  }
-  // }
+  phi[left] = neumann(neumann_pressure_variable(t));
 
+  u.n[right] = neumann(0.);
 }
 
 int main(int argc, char *argv[])
@@ -166,22 +158,26 @@ int main(int argc, char *argv[])
   }
 
   origin (0, h_);
-  
+
   N = 1<<LEVEL;
   L0 = Lx;
   G = 9.81;
-  breaking = 0.1;
-  //CFL_H = .1;
-  TOLERANCE = 10e-5;
+  breaking = 1;
+  CFL_H = .1;
+  CFL = 0.1;
+  rmin = sqrt(Lx*nl/N/h_);
+  printf("CFL=%f, CFL_H=%f\n", CFL, CFL_H);
+  TOLERANCE = 10e-8;
   //printf("TOLERANCE:%f\n", TOLERANCE);
-  //theta_H = 0.51;
+  theta_H = 0.51;
+  nu = 1e-6;
   #if _OPENMP
   if (set_n_threads>0)
   {
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
   omp_set_num_threads(set_n_threads);   
-  fprintf(stderr, "set openmp threads:%d\n", 4);
+  fprintf(stderr, "set openmp threads:%d\n", omp_get_num_threads());
   }
   #elif _MPI
   fprintf(stderr, "npe:%d\n", npe());
@@ -190,8 +186,8 @@ int main(int argc, char *argv[])
   run();
   }
 #if _OPENMP
-//event output_field (t <= Tend; t += 1)
-event output_field (t<=Tend; i++)
+event output_field (t <= Tend; t += 1)
+//event output_field (t<=Tend; i++)
 {
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
     static int j = 0;
@@ -269,7 +265,7 @@ event show_progress(i++)
   printf("%.2f%%\n", progress*100);
 }
 
-event surface_probes(t+=0.1){
+event surface_probes(t+=0.01){
   char filename[100];
   sprintf(filename, "%s/surface_probes.csv", results_folder);
   FILE *fp = fopen(filename, "a");
@@ -280,7 +276,7 @@ event surface_probes(t+=0.1){
       }
       fprintf(fp, "\n");
   }
-  fprintf(fp, "%f, %f", t, Wave_VeloX(0,0,0,t));
+  fprintf(fp, "%f", t);
   for (int probe_n=0;probe_n<n_probes;probe_n++){
     
     fprintf(fp, ", %f", interpolate(eta, probe_positions[probe_n],-h_));

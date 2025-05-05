@@ -7,32 +7,29 @@
 #include <string.h>
 #include "utils.h"
 #include "adapt_wavelet_leave_interface_two_levels.h"
-// #include "adapt_wavelet_leave_interface.h"
 #include "heights.h"
 #include "output.h"
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
 #include "navier-stokes/conserving.h"
-//#include "tension.h"
-#include "embed.h"
 #include "reduced.h"
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 2; //0 to use all available threads for OPENMP
+int set_n_threads = 8; //0 to use all available threads for OPENMP
 int LEVEL = 4;
 int max_LEVEL = 11; //Default level if none is given as command line argument
 int padding = 2;
 int EXTRA_PISTON_LEVEL = 0; //extra refinement around the piston to make it leak less 
 
 #define _h 0.6//water depth
-double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double l = 24.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double g_ = 9.81;
 double domain_height = 1.0; //the height of the simulation domain
 double femax = 0.2;
 double uemax = 0.2;
 double pemax = 0.2;
-double Tend = 25.;
+double Tend = 50.;
 
 double probe_positions[144];
 int n_probes = 144;
@@ -128,27 +125,27 @@ void mask_domain(){
 }
 
 int main(int argc, char *argv[]) {
-  
+
   //set max_LEVEL and run number from command line args
   for(int j=0;j<argc;j++){
     if (strcmp(argv[j], "-L") == 0)
-        {                 
+        {
             max_LEVEL = atoi(argv[j + 1]);
         }
-    if (strcmp(argv[j], "-P") == 0) 
-        {                 
-            EXTRA_PISTON_LEVEL = atoi(argv[j + 1]);   
+    if (strcmp(argv[j], "-P") == 0)
+        {
+            EXTRA_PISTON_LEVEL = atoi(argv[j + 1]);
         }
-    if (strcmp(argv[j], "-r") == 0) 
-        {                 
+    if (strcmp(argv[j], "-r") == 0)
+        {
             run_number = atoi(argv[j + 1]);
-        }  
+        }
   }
 
   //make folders for saving the results
   sprintf(results_folder, "results/run%d/LEVEL%d_%d", run_number, max_LEVEL, EXTRA_PISTON_LEVEL);
   sprintf(vtu_folder, "%s/vtu", results_folder);
-  
+
   char remove_old_results[100];
   sprintf(remove_old_results, "rm -r %s", results_folder);
   if (system(remove_old_results)==0){
@@ -160,8 +157,8 @@ int main(int argc, char *argv[]) {
   if (system(make_results_folder)==0){
     printf("made results folder:%s\n", results_folder);
   }
-  
-  
+
+
   //copy the script to the results folder for later inspection if needed
   char copy_script[100];
   sprintf(copy_script, "cp moving_piston.c %s/moving_piston.c", results_folder);
@@ -173,10 +170,10 @@ int main(int argc, char *argv[]) {
   // sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
   sprintf(piston_file, "piston_files/%d/piston_position.dat", run_number);
   sprintf(piston_speed_file, "piston_files/%d/piston_speed.dat", run_number);
-  
+
   printf("%s\n", piston_file);
   read_piston_data();
-  
+
   L0 = l;
   //f.sigma = 0.078;
   rho1 = 997;
@@ -185,7 +182,7 @@ int main(int argc, char *argv[]) {
   mu2 = 17.4e-6;
   G.y = - g_;
   N = 1 << LEVEL;
-  DT = 0.1;
+  CFL = 0.1;
   u.n[bottom] = dirichlet(0.);
   u.t[bottom] = dirichlet(0.);
   u.n[left] = dirichlet(0.);
@@ -285,7 +282,7 @@ event surface_probes(t+=0.01){
 }
 
 //save unordered mesh
-event vtu(t+=0.1, last){
+event vtu(t+=1, last){
   printf("Saving vtu file\n");
   char filename[100];
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));

@@ -13,7 +13,8 @@ function_fit = 0
 fft_lowpass = 1
 cutoff_frequency = 8
 savgol_fit = 0
-fil3 = True # use fil3 instead of the volt reading from the piston
+fil3 = False # use fil3 instead of the volt reading from the piston
+fil2 = True # use fil2.dat instead
 window_length = 20
 polyorder = 4
 f = 1.425
@@ -31,9 +32,13 @@ else:
     filenames = ['2d_piston/boundary-piston/piston_files/1/fil1.dat']
     if fil3:
         filenames = ['2d_piston/boundary-piston/piston_files/1/fil3.dat']
+    if fil2:
+        filenames = ['2d_piston/boundary-piston/piston_files/1/fil2.dat']
 file_samplerate = 100
 if fil3:
     convert_to_meters = 0.01
+elif fil2:
+    convert_to_meters = 0.0044
 else:
     convert_to_meters = -0.044
 
@@ -120,7 +125,11 @@ for filename in filenames:
     plt.title(filename[-10:-9])
     # plt.plot(t[-100:], position[-100:])
     # plt.show()
+    plt.figure()
+    plt.plot(t, fft_smoothed)
+    plt.plot(t, np.nancumsum(np.gradient(fft_smoothed)*file_samplerate)/file_samplerate)
+    plt.legend(["smoothed", "gradient nancumsum"])
     #plt.plot(t, savgol_data*np.tanh(t*100))
     #plt.plot(t, np.gradient(data))
     #plt.show()
-#plt.show()
+plt.show()

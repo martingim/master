@@ -13,18 +13,18 @@
 #include "output.h"
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
-#include "navier-stokes/conserving.h"
+//#include "navier-stokes/conserving.h"
 #include "reduced.h"
 #include "profiling.h"
 #include "output_vtu_foreach.h"
 
-int set_n_threads = 2; //0 to use all available threads for OPENMP
+int set_n_threads = 8; //0 to use all available threads for OPENMP
 int LEVEL = 6;      //length_of domain/2**LEVEL the largest cells used
 int max_LEVEL = 10; //Default level if none is given as command line argument length_of_domain/2**max_LEVEL the size of the smallest cells
 int padding = 2;    //How many cells around the air water interface that should keep the highest refinement level
 
 #define _h 0.6//water depth
-double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
+double l = 24.6; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
 double g_ = 9.81;
 double femax = 0.2;
@@ -58,8 +58,8 @@ double piston_ux[piston_timesteps];
 void read_piston_data(){
   char piston_file[40];
 
-  //sprintf(piston_file, "piston_files/%d/piston_speed.dat", run_number);
-  sprintf(piston_file, "piston_speed.dat");
+  sprintf(piston_file, "piston_files/%d/piston_speed.dat", run_number);
+  //sprintf(piston_file, "piston_speed.dat");
   printf("piston file:%s\n", piston_file);
 
   int count = 0;
@@ -163,9 +163,9 @@ int main(int argc, char *argv[]) {
   mu2 = 17.4e-6;
   G.y = - g_;
   N = 1 << LEVEL;
-  //TOLERANCE = 1e-9;
+  //TOLERANCE = 1e-4;
   printf("TOLERANCE:%f\n", TOLERANCE);
-  //DT = l/(1<<max_LEVEL);
+  DT = l/(1<<(max_LEVEL+1));
   printf("DT:%f\n", DT);
   
 #if _OPENMP
@@ -199,7 +199,7 @@ event init (i = 0) {
   u.n[bottom] = dirichlet(0.);
   u.t[bottom] = dirichlet(0.);
 
-  u.n[right]  = dirichlet(0.);
+  u.n[right]  = neumann(0.);
   
   fraction (f, - y); //set the water depth _h
   while (adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax,uemax,pemax, femax},max_LEVEL, LEVEL,padding).nf){  //for adapting more around the piston interface
@@ -252,7 +252,7 @@ event surface_probes(t+=0.01){
 }
 
 //save unordered mesh
-event vtu(t+=0.1, last){
+event vtu(t+=1, last){
   printf("Saving vtu file\n");
   char filename[100];
   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
@@ -261,7 +261,7 @@ event vtu(t+=0.1, last){
 
 event save_energy(t+=0.01)
 {
-  printf("saving energy\n");
+  //printf("saving energy\n");
   char filename[200];
   sprintf(filename, "%s/energy.csv", results_folder);
   static FILE * fp = fopen(filename, "w");
@@ -283,7 +283,7 @@ simulation stopped at Tend
 */
 event stop (t = Tend);
 
-event show_progress(i++)
+event show_progress(t+=1)
 {
   printf("t=%02.3f, i=%04d, dt=%.3g\n", t, i, dt);
   //float progress = 0;

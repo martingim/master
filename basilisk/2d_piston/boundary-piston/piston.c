@@ -14,8 +14,6 @@
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
 #include "navier-stokes/conserving.h"
-//#include "tension.h"
-#include "embed.h"
 #include "reduced.h"
 #include "profiling.h"
 #include "output_vtu_foreach.h"
@@ -29,10 +27,10 @@ int padding = 2;    //How many cells around the air water interface that should 
 double l = 14; //the size of the domain, preferable if l=(water_depth*2**LEVEL)/n where n is an integer
 double domain_height = 1.0; //the height of the simulation domain
 double g_ = 9.81;
-double femax = 0.01;
-double uemax = 0.01;
-double pemax = .01;
-double Tend = 40.;
+double femax = 0.2;
+double uemax = 0.2;
+double pemax = .2;
+double Tend = 50.;
 
 char results_folder[40]; //the location to save the results
 char vtu_folder[50]; //the locaton to save the vtu files
@@ -167,7 +165,7 @@ int main(int argc, char *argv[]) {
   N = 1 << LEVEL;
   //TOLERANCE = 1e-9;
   printf("TOLERANCE:%f\n", TOLERANCE);
-  DT = l/(1<<max_LEVEL);
+  //DT = l/(1<<max_LEVEL);
   printf("DT:%f\n", DT);
   
 #if _OPENMP

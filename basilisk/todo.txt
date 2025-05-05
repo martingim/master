@@ -32,9 +32,16 @@ introduction
 
 *test results without conserving.h
 
+
+*retest if reduced.h is needed
+
 *check the different piston implementations for simulation speed (both stephane and boundary)
 
+*test if changing timestep helps boundary piston
 
 RESULTS
     piston position files argumentation for using fil3.dat and change the factor to m i matlab
 
+
+
+rsync -r martgi@login.math.uio.no:Documents/master/basilisk/2d_piston/piston-moving/results/ ~/Documents/master/basilisk/2d_piston/piston-moving/results/

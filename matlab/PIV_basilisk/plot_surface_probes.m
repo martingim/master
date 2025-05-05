@@ -26,7 +26,7 @@ lab_surface_probes = ["f1425_a308_r1.csv";
             "f1425_a154_r9.csv"];
 
 %%
-%% plot sensor 1 for different basilisk runs in different plots
+%% plot sensor 1 for different runs in different plots
 close all
 probe_positions = [8 10.05 10.75 11.50;
                    1.5 10.05 10.75 11.50];

@@ -24,7 +24,7 @@ double Tend = 10;     //the end time of the simulation
 double rmin = 0.5;  //rmin the relative height of the top layer compared to a regular distribution. the rest fo the layers follow a geometric distribution.
 int LEVEL = 7;      //the grid resolution in x direction Nx = 2**LEVEL
 double rho = 997;
-double k_ = 7.9596;    //the wavenumber
+double k_ = 7.9596;   //the wavenumber
 double a = 0.0205;    //the amplitude of the wave
 double ak = 7.9596*0.0205;
 double h_ = 0.6;      //water depth
@@ -99,14 +99,12 @@ int main(int argc, char *argv[])
   }
   sprintf(guage_name, "%s/X_0", results_folder);
   
-  //copy the script to the results folder for later incpection if needed
+  //copy the script to the results folder for later inspection if needed
   char copy_script[100];
   sprintf(copy_script, "cp multilayer.c %s/multilayer.c", results_folder);
   if (system(copy_script)==0){
     printf("copied script to results folder\n");
   }
-
-
 
   origin (-Lx/2., h_);
   periodic(right);
@@ -114,7 +112,7 @@ int main(int argc, char *argv[])
   rmin = sqrt(Lx*nl/N/h_);
   L0 = Lx;
   G = g_;
-  breaking = 0.1;
+  breaking = 1.0;
   CFL_H = .1;
   TOLERANCE = 10e-5;
   theta_H = 0.51;
@@ -218,7 +216,7 @@ void plot_profile (double t, FILE * fp)
 //   plot_profile (t, fp);
 // }
 
-event output_field (t <= Tend; t+=.05)
+event output_field (t <= Tend; t+=1)
 {
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
     static int j = 0;

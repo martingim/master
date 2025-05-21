@@ -53,5 +53,5 @@ xlabel('time [s]')
 ylabel('piston position [m]')
 xlim([10 13])
 
-fontsize(15, "points")
+fontsize(20, "points")
 print('~/Documents/master/movies_and_figures/compare_piston_files', '-dpng')

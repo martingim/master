@@ -22,7 +22,7 @@ int LEVEL = 3;
 int max_LEVEL = 8;
 int padding =  2;
 double Lx = 0.7895; // the wavelength of the wave
-int n_waves = 4; // the number of wavelengths to fit in the domain
+int n_waves = 1; // the number of wavelengths to fit in the domain
 
 int set_n_threads = 2;
 vector h[]; //scalar field of the distance from the surface, using heights.h
@@ -94,9 +94,10 @@ int main (int argc, char * argv[])
   mu1 = 8.9e-4;
   mu2 = 17.4e-6;
   G.y = -g_;
-  
+  DT = Lx/(1<<(max_LEVEL-1));
+  printf("DT=%.4f\n", DT);
   N = 1 << LEVEL;
-  DT = 0.1e-2;
+  CFL = 0.1;
 #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);
@@ -188,7 +189,7 @@ event vtu(t+=.1, last){
 }
 
 event adapt (i++) {
-  printf("i=%d\r", i);
+  //printf("i=%d\r", i);
   adapt_wavelet_leave_interface({u.x, u.y, p},{f},(double[]){uemax, uemax, uemax, uemax}, max_LEVEL, LEVEL,padding);
 }
 
@@ -227,7 +228,7 @@ event surface_probes(t+=0.01, t<T0){
 }
 
 
-event show_progress(i++)
-{
-  printf("t=%02.3f, i=%04d, dt=%.3g\n", t, i, dt);
-}
+// event show_progress(i++)
+// {
+//   printf("t=%02.3f, i=%04d, dt=%.3g\n", t, i, dt);
+// }

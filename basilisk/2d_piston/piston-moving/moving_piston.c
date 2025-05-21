@@ -125,8 +125,8 @@ void mask_domain(){
 }
 
 int main(int argc, char *argv[]) {
-
-  //set max_LEVEL and run number from command line args
+  //set max_LEVEL, extra piston refinement
+  //and run number from command line args
   for(int j=0;j<argc;j++){
     if (strcmp(argv[j], "-L") == 0)
         {
@@ -158,7 +158,6 @@ int main(int argc, char *argv[]) {
     printf("made results folder:%s\n", results_folder);
   }
 
-
   //copy the script to the results folder for later inspection if needed
   char copy_script[100];
   sprintf(copy_script, "cp moving_piston.c %s/moving_piston.c", results_folder);
@@ -166,8 +165,6 @@ int main(int argc, char *argv[]) {
     printf("copied script to results folder\n");
   }
 
-  //piston data
-  // sprintf(piston_file, "piston_files/%d/fil3.dat", run_number);
   sprintf(piston_file, "piston_files/%d/piston_position.dat", run_number);
   sprintf(piston_speed_file, "piston_files/%d/piston_speed.dat", run_number);
 
@@ -175,7 +172,6 @@ int main(int argc, char *argv[]) {
   read_piston_data();
 
   L0 = l;
-  //f.sigma = 0.078;
   rho1 = 997;
   rho2 = 1.204;
   mu1 = 8.9e-4;
@@ -183,6 +179,8 @@ int main(int argc, char *argv[]) {
   G.y = - g_;
   N = 1 << LEVEL;
   CFL = 0.1;
+  DT = l/(1<<(max_LEVEL));
+  printf("DT=%.5f\n", DT);
   u.n[bottom] = dirichlet(0.);
   u.t[bottom] = dirichlet(0.);
   u.n[left] = dirichlet(0.);
@@ -204,11 +202,8 @@ int main(int argc, char *argv[]) {
 event init (i = 0) {
   origin(-piston_back_wall_offset, -_h);
   mask_domain();
-  //refine((fabs(y)<l/N*0.49)&&(level<=max_LEVEL));
-  //mvtu(42);
   fraction (f, - y); //set the water depth _h
   fraction (pstn, PISTON); //set the piston fraction
-  // while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL, LEVEL,padding).nf){
   while (adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL}).nf){  //for adapting more around the piston interface
     fraction (f, - y); //set the water level on the refined mesh
     fraction (pstn, PISTON); //set the piston fraction on the refined mesh
@@ -222,10 +217,10 @@ event init (i = 0) {
 
 /*
 The grid is adapted to keep max refinement at the air water interface.
-And to minimise the error in the velocity field.
+And to minimise the error in the velocity field. Extra grid refinement around 
+the piston is possible.
  */
 event adapt (i++){
-  // adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax,uemax,femax,pemax, femax}, max_LEVEL, LEVEL,padding);
   adapt_wavelet_leave_interface({u.x, u.y, p},{f, pstn},(double[]){uemax, uemax, pemax, femax, pemax}, max_LEVEL+EXTRA_PISTON_LEVEL, LEVEL,padding, (int[]){max_LEVEL, max_LEVEL+EXTRA_PISTON_LEVEL});
   unrefine ((x>(Piston_Pos_x(x,y,z,t)+0.05))&&(level>=max_LEVEL));
   unrefine ((x < Piston_Pos_x(x,y,z,t)-piston_w*0.6)); //unrefine the area to the left of the piston
@@ -236,8 +231,7 @@ event adapt (i++){
 
 
 /**
-The moving piston is implemented via Stephane's trick. Note that this
-piston is leaky.
+The moving piston is implemented via Stephane's trick. Which results in a leaking piston.
 */
 event piston (i++, first) {
   fraction (pstn, PISTON);
@@ -310,53 +304,12 @@ event save_energy(t+=0.01)
     fprintf (fp, "t, ke, gpe, f\n");
   fprintf(fp, "%f, %f, %f, %f\n", t, rho1*ke/2., rho1*g_*gpe, volume);
 }
-// void mvtu(int s){
-//   printf("Saving vtu file\n");
-//   char filename[40];
-//   sprintf(filename, "%s/vtu/TIME-%d", results_folder, s);
-//   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
-// }
 
-// event vtu(i++){
-//   printf("Saving vtu file\n");
-//   char filename[40];
-//   sprintf(filename, "%s/vtu/step-%05d", results_folder, i);
-//   output_vtu((scalar *) {f,p,pstn}, (vector *) {u}, filename);
-// }
-// event move_results(t=0)
-// {
-//   char results_folder[40];
-//   char make_folder[100];
-//   sprintf(results_folder, "./results/run%d/LEVEL%d", run_number, max_LEVEL); 
-//   sprintf(remove_folder, "rm -r %s", results_folder); 
-//   sprintf(make_folder, "mkdir -p %s", results_folder);
-  
-
-
-//   if (system(remove_folder)==0){
-//     printf("removed previous run results folder\n");
-//   }
-//   if (system(make_folder)==0){
-//     printf("made folder for results:%s\n", results_folder);
-//   }
-
-  
-  //mkdir(results_folder, 0755);
-  //system(sprintf("rm -r %s", results_folder));//remove the results folder if it already exists
-  //mkdir(results_folder,0755);
-// }
-
-/*
-simulation stopped at Tend
-*/
 event stop (t = Tend);
 
 event show_progress(i++)
 {
   printf("t=%02.3f, i=%04d, dt=%.3g, run:%d, LEVEL=%d, Extra_piston_level=%d\n", t, i, dt,run_number, max_LEVEL, EXTRA_PISTON_LEVEL);
-  //float progress = 0;
-  //progress = t /Tend;
-  //printf("%.2f%%\r", progress*100);
 }
 
 

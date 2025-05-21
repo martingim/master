@@ -13,7 +13,7 @@
 #include "output.h"
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
-//#include "navier-stokes/conserving.h"
+#include "navier-stokes/conserving.h"
 #include "reduced.h"
 #include "profiling.h"
 #include "output_vtu_foreach.h"
@@ -30,14 +30,14 @@ double g_ = 9.81;
 double femax = 0.2;
 double uemax = 0.2;
 double pemax = .2;
-double Tend = 50.;
+double Tend = 5.;
 
 char results_folder[40]; //the location to save the results
 char vtu_folder[50]; //the locaton to save the vtu files
 
 //surface probes
-double probe_positions[144]; //surface probes that meausre the elevation of the free surface spaced 0.1m apart
-int n_probes = 144;
+double probe_positions[1404]; //surface probes that meausre the elevation of the free surface spaced 0.1m apart
+int n_probes = 1404;
 int n_extra_probe = 4;
 double extra_probe_positions[]={1.50, 10.04, 10.75, 11.50}; //extra surface probes at these positions(will be the first probes in the surfacs_probes file)
 vector h[]; //scalar field for calculating the distance from the surface, using heights.h
@@ -91,10 +91,6 @@ double paddle_rampoff(double y){
   return ramp;
 }
 
-// double Wave_VeloX(double x, double y, double z, double t){
-//   return piston_ux[(int)floor(t*file_samplerate)];
-// }
-
 double Wave_VeloX(double x , double y, double z, double t){
   int t0_i = (int)floor(t*file_samplerate);
   //linear interpolation of the piston speed f(t) = f(t0) +(f(t1)-f(t0))*(t-t0)/(t1-t0)
@@ -109,13 +105,13 @@ event setup_probe_positions(i=0){
   probe_positions[j] = 0.1;
   j++;
   for(j=j;j<n_probes;j++){
-    probe_positions[j] = probe_positions[j-1]+0.1;
+    probe_positions[j] = probe_positions[j-1]+0.01;
   }
 }
 
 int main(int argc, char *argv[]) {
   
-  //set max_LEVEL and run number from command line args
+  //set max_LEVEL, run number and number of threads from command line args
   for(int j=0;j<argc;j++){
     if (strcmp(argv[j], "-L") == 0) //check for command line flag
       {                 
@@ -147,7 +143,7 @@ int main(int argc, char *argv[]) {
     printf("made results folder:%s\n", results_folder);
   }
     
-  //copy the script to the results folder for later incpection if needed
+  //copy the script to the results folder for later inspection if needed
   char copy_script[100];
   sprintf(copy_script, "cp piston.c %s/piston.c", results_folder);
   if (system(copy_script)==0){
@@ -156,7 +152,6 @@ int main(int argc, char *argv[]) {
     
   read_piston_data();
   L0 = l;
-  //f.sigma = 0.078;
   rho1 = 997;
   rho2 = 1.204;
   mu1 = 8.9e-4;
@@ -166,6 +161,7 @@ int main(int argc, char *argv[]) {
   //TOLERANCE = 1e-4;
   printf("TOLERANCE:%f\n", TOLERANCE);
   DT = l/(1<<(max_LEVEL+1));
+  CFL = 0.1;
   printf("DT:%f\n", DT);
   
 #if _OPENMP
@@ -251,13 +247,13 @@ event surface_probes(t+=0.01){
   fclose(fp);
 }
 
-//save unordered mesh
-event vtu(t+=1, last){
-  printf("Saving vtu file\n");
-  char filename[100];
-  sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
-  output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
-}
+// //save unordered mesh
+// event vtu(t+=1, last){
+//   printf("Saving vtu file\n");
+//   char filename[100];
+//   sprintf(filename, "%s/TIME-%05.0f", vtu_folder, (t*100));
+//   output_vtu((scalar *) {f,p}, (vector *) {u}, filename);
+// }
 
 event save_energy(t+=0.01)
 {
@@ -286,12 +282,11 @@ event stop (t = Tend);
 event show_progress(t+=1)
 {
   printf("t=%02.3f, i=%04d, dt=%.3g\n", t, i, dt);
-  //float progress = 0;
-  //progress = t /Tend;
-  //printf("%.2f%%\r", progress*100);
 }
 
 event profiling (i += 20) {
   static FILE * fp = fopen ("profiling", "w");
   trace_print (fp, 1);
 }
+
+event end (t = Tend);

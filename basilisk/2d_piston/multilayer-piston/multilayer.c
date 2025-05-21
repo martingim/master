@@ -13,18 +13,15 @@ the parameters for the wave are from
 #include "layered/remap.h"
 #include "layered/check_eta.h"
 #include "layered/perfs.h"
-//#include "view.h"
 #include "output_pvd.h"
-
-//#include "display.h"
 
 int set_n_threads = 8; //set number of threads manually
 int LEVEL = 11;      //the grid resolution in x direction Nx = 2**LEVEL
 
-double Tend = 50;    //the end time of the simulation
+double Tend = 5;    //the end time of the simulation
 // double Lx = 24.6; //The length of the simulation domain
 double Lx = 24.6;
-#define nl_ 10  //the default number of layers if none are given as command line arguments
+#define nl_ 20  //the default number of layers if none are given as command line arguments
 double rmin = 0.5;  //rmin the relative height of the top layer compared to 
                     //a regular distribution. the rest fo the layers follow a geometric distribution.
 
@@ -42,8 +39,8 @@ double neumann_pressure[piston_timesteps];
 char results_folder[40]; //the location to save the results
 char vts_folder[50]; //the locaton to save the vtu files
 //surface probes
-double probe_positions[144] = {1.5,10.048,10.745,11.498};
-int n_probes = 144;
+double probe_positions[1404] = {1.5,10.048,10.745,11.498};
+int n_probes = 1404;
 
 
 void read_piston_data(){
@@ -67,20 +64,15 @@ void read_piston_data(){
   for (int i=count;i<piston_timesteps;i++){
     piston_ux[i] = 0; //set the remaining timesteps to 0
   }
-  // for (int i=0;i<piston_timesteps-1;i++){
-  //   neumann_pressure[i] = (piston_ux[i+1]-piston_ux[i])*file_samplerate;
-  // }
-  // neumann_pressure[piston_timesteps-1] = 0;
 }
 
 event setup_probe_positions(i=0){
   double probe_x = 0.1;
   for(int j=4;j<n_probes;j++){
     probe_positions[j] =probe_x;
-    probe_x = probe_x+0.1;
+    probe_x = probe_x+0.01;
   }
 }
-
 
 double Wave_VeloX(double x , double y, double z, double t){
   int t0_i = (int)floor(t*file_samplerate);
@@ -89,9 +81,6 @@ double Wave_VeloX(double x , double y, double z, double t){
 }
 
 
-// double neumann_pressure_function(double t){
-//   return neumann_pressure[(int) floor(t*file_samplerate)];
-// }
 
 event init (i = 0)
 {
@@ -132,6 +121,10 @@ int main(int argc, char *argv[])
     {                
       run_number = atoi(argv[j + 1]); 
     }
+    if (strcmp(argv[j], "--nthreads") == 0)
+    {                
+      set_n_threads = atoi(argv[j + 1]); 
+    }
   }
   //make folders for saving the results
   sprintf(results_folder, "results/run%d/LEVEL%d_layers%d", run_number, LEVEL, nl);
@@ -149,8 +142,7 @@ int main(int argc, char *argv[])
     printf("made results folder:%s\n", results_folder);
   }
   
-  
-  //copy the script to the results folder for later incpection if needed
+  //copy the script to the results folder for later inspection if needed
   char copy_script[100];
   sprintf(copy_script, "cp multilayer.c %s/multilayer.c", results_folder);
   if (system(copy_script)==0){
@@ -162,7 +154,7 @@ int main(int argc, char *argv[])
   N = 1<<LEVEL;
   L0 = Lx;
   G = 9.81;
-  breaking = 1;
+  breaking = 1.0;
   CFL_H = .1;
   CFL = 0.1;
   rmin = sqrt(Lx*nl/N/h_);
@@ -187,7 +179,6 @@ int main(int argc, char *argv[])
   }
 #if _OPENMP
 event output_field (t <= Tend; t += 1)
-//event output_field (t<=Tend; i++)
 {
     fprintf(stdout, "field vts output at step: %d, time: %.2f \n", i, t);
     static int j = 0;
@@ -202,60 +193,28 @@ event output_field (t <= Tend; t += 1)
     #endif
 }
 #endif
-// event movie (t += 1./25., t <= Tend)
-// {
-//   view (fov = 17.3106,quat = {0.549, -0.058, -0.101, 0.828},
-//       tx = -0.356, ty = -0.266, tz = -1.720,
-//       width = 1200, height = 768);
-//   char s[80];
-//   sprintf (s, "t = %.2f T0", t);
-//   draw_string (s, size = 80);
-//   squares ("eta", linear = true, z = "eta", min = -0.05, max = 0.06);
-//   save ("movie.mp4");
-// }
 
-/**
-We use gnuplot to visualise the wave profile as the simulation
-runs and to generate a snapshot at $t=Tend$.*/
-#if 1
-// void plot_profile (double t, FILE * fp)
-// {
-//   fprintf (fp,
-// 	   "set title 't = %.2f'\n"
-// 	   "p [0.0:%f][-0.8:0.6]'-' u 1:3:2 w filledcu lc 3 t ''\n", t, Lx);
-//   foreach(serial)
-//     fprintf (fp, "%g %g %g\n", x, eta[], zb[]);
-//   fprintf (fp, "e\n\n");
-//   fflush (fp);
-// }
-
-
-// event profiles (t += 0.05)
-// {
-//   double ke = 0., gpe = 0.;
-//   foreach (reduction(+:ke) reduction(+:gpe)) {
-//     double zc = zb[];
-//     foreach_layer() {
-//       double norm2 = sq(w[]);
-//       foreach_dimension()
-// 	      norm2 += sq(u.x[]);
-//       ke += norm2*h[]*dv();
-//       gpe += (zc + h[]/2.)*h[]*dv();
-//       zc += h[];
-//     }
-//   }
-//   static FILE * fp = popen ("gnuplot 2> /dev/null", "w");
-//   if (i == 0)
-//     fprintf (fp, "set term x11\n");
-//   plot_profile (t, fp);
-// }
-
-// event gnuplot (t = Tend) {
-//   FILE * fp = popen ("gnuplot", "w");
-//   fprintf (fp,pstn1[] =  piston_function(x, y, 0., 0.5, Delta);  
-// }
-
-#endif
+ event save_energy (t += 0.01)
+{
+  char filename[200];
+  sprintf(filename, "%s/energy.csv", results_folder);
+  static FILE * fp = fopen (filename, "w");
+  double ke = 0., gpe = 0.;
+  foreach (reduction(+:ke) reduction(+:gpe)) {
+    double zc = zb[];
+    foreach_layer() {
+      double norm2 = sq(w[]);
+      foreach_dimension()
+	      norm2 += sq(u.x[]);
+      ke += norm2*h[]*dv();
+      gpe += (zc + h[]/2.)*h[]*dv();
+      zc += h[];
+    }
+  }
+  if (i == 0)
+    fprintf (fp, "t, ke, gpe\n");
+  fprintf(fp, "%f, %f, %f\n", t, 997*ke/2., 997*9.81*gpe);
+}
 
 event show_progress(i++)
 {
@@ -284,3 +243,5 @@ event surface_probes(t+=0.01){
   fprintf(fp, "\n");
   fclose(fp);
 }
+
+event end (t = Tend);

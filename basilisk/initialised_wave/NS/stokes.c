@@ -77,7 +77,7 @@ int main (int argc, char * argv[])
   mu2 = 17.4e-6;
   G.y = -g_;
   N = 1 << LEVEL;
-  DT = 1e-2;
+  DT = Lx/(1<<(LEVEL-1));
 #if _OPENMP
   int num_omp = omp_get_max_threads();
   fprintf(stderr, "max number of openmp threads:%d\n", num_omp);

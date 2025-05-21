@@ -1,7 +1,6 @@
 #!/bin/bash
-nx=("7" "8" "9")
-nl=("10" "20" "40")
-for i in ${nx[*]}; do for j in ${nl[*]}; do
+
+for i in "7" "8" "9"; do for j in "10" "20" "40"; do
     echo "nx:"$i "nl:"$j
-    ./multilayer $i $j
+    ./multilayer -L $i -nl $j
 done; done;

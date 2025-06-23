@@ -1,17 +1,8 @@
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy import fft
-## fft of piston file
-# filename = '2d_piston/boundary-piston/piston_files/1/fil3.dat'
-# real_fft = np.fft.rfft(position_data)
-# real_fft[500:] = 0
-# fft_smoothed = np.fft.irfft(real_fft)
-# data = np.loadtxt(filename)
-# if len(data)%2:
-#     data = data[:-1]
-# position_data = (data-np.mean(data))*0.01
 
+#Generate piston position and speed data
+#a*tanh(t)*tanh(wave_time-t)*sin(f*2pi*t)
 number_of_pistons = 14
 speed_file = 'piston_speed.dat'
 position_file = 'piston_position.dat'
